@@ -49,17 +49,10 @@ export const siteConfig: SiteConfig = {
 	site_url: "https://wwzhf.github.io",
 
 	// 站点描述
-	description:
-		"一个记录生活与技术的个人博客。",
+	description: "一个记录生活与技术的个人博客。",
 
 	// 站点关键词
-	keywords: [
-		"个人博客",
-		"博客",
-		"技术博客",
-		"静态博客",
-		"Astro",
-	],
+	keywords: ["个人博客", "博客", "技术博客", "静态博客", "Astro"],
 
 	// 主题色
 	themeColor: {
