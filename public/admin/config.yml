@@ -1,0 +1,100 @@
+# Sveltia CMS 配置（Decap CMS 兼容格式）
+# 网页端内容管理后台：https://wwzhf.github.io/admin/
+# 登录方式：GitHub 个人访问令牌（PAT），保存后自动提交到仓库并触发重新部署
+
+backend:
+  name: github
+  repo: wwzhf/wwzhf.github.io
+  branch: master
+
+site_url: https://wwzhf.github.io
+locale: zh_CN
+
+# 上传的图片保存到 public/assets/images，站点里以 /assets/images/... 引用
+media_folder: public/assets/images
+public_path: /assets/images
+
+collections:
+  # ── 博客文章 ──────────────────────────────
+  - name: posts
+    label: 文章
+    label_singular: 文章
+    folder: src/content/posts
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    editor:
+      preview: false
+    summary: "{{title}}"
+    sortable_fields:
+      - published
+      - title
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 发布日期, name: published, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { label: 摘要, name: description, widget: text, required: false }
+      - { label: 封面图, name: image, widget: image, required: false }
+      - { label: 分类, name: category, widget: string, required: false }
+      - { label: 标签, name: tags, widget: list, required: false, default: [] }
+      - { label: 草稿, name: draft, widget: boolean, default: false, required: false }
+      - { label: 置顶, name: pinned, widget: boolean, default: false, required: false }
+      - { label: 正文, name: body, widget: markdown }
+
+  # ── 动态（说说） ──────────────────────────
+  - name: dynamic
+    label: 动态
+    label_singular: 动态
+    folder: src/content/dynamic
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{year}}-{{month}}-{{day}}-{{hour}}{{minute}}{{second}}"
+    editor:
+      preview: false
+    fields:
+      - { label: 发布时间, name: published, widget: datetime, format: "YYYY-MM-DD HH:mm:ss", date_format: YYYY-MM-DD, time_format: HH:mm:ss }
+      - { label: 位置, name: location, widget: string, required: false }
+      - { label: 内容, name: body, widget: markdown }
+
+  # ── 独立页面内容 ──────────────────────────
+  - name: pages
+    label: 页面内容
+    editor:
+      preview: false
+    files:
+      - label: 关于我
+        name: about
+        file: src/content/spec/about.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 写文章
+        name: writing
+        file: src/content/spec/writing.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 笔记本
+        name: notes
+        file: src/content/spec/notes.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 更新日志
+        name: changelog
+        file: src/content/spec/changelog.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 规划
+        name: plans
+        file: src/content/spec/plans.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 足迹
+        name: footprint
+        file: src/content/spec/footprint.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
+      - label: 留言板说明
+        name: guestbook
+        file: src/content/spec/guestbook.md
+        fields:
+          - { label: 内容, name: body, widget: markdown }
