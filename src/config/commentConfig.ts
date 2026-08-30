@@ -2,7 +2,10 @@ import type { CommentConfig } from "../types/commentConfig";
 
 export const commentConfig: CommentConfig = {
 	// 评论系统类型: none, twikoo, waline, giscus, disqus, artalk，默认为none，即不启用评论系统
-	type: "none",
+	// ⚠️ 已选 Waline（含文章浏览量统计）。上线前必须部署自己的 Waline 后端，
+	// 并把下方 waline.serverURL 换成你的服务地址，否则评论区无法提交数据。
+	// 免费部署教程：https://waline.js.org/guide/get-started.html
+	type: "waline",
 
 	//twikoo评论系统配置
 	twikoo: {
