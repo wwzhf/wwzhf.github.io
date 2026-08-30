@@ -132,6 +132,8 @@ export default defineConfig({
 			],
 			smoothScrolling: false,
 			cache: true,
+			// 文章浏览器（/posts/ 左侧分类树）的链接由页面脚本原地渲染，不走 swup
+			ignore: (url, { el } = {}) => Boolean(el?.closest?.("#pb-tree")),
 			preload: {
 				hover: true,
 				visible: true,
