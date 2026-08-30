@@ -1,0 +1,12 @@
+---
+import Calendar from "@/components/widget/Calendar.astro";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+---
+
+<MainGridLayout title="日历" description="日历">
+    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+        <div class="card-base z-10 px-6 py-6 relative w-full">
+            <Calendar />
+        </div>
+    </div>
+</MainGridLayout>

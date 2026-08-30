@@ -9,10 +9,10 @@ export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar.avif",
 
 	// 名字（改成你自己的昵称）
-	name: "博主",
+	name: "eri",
 
 	// 个人签名
-	bio: "你好，欢迎来到我的小站～",
+	bio: "你好，欢迎来到 eri 的博客～",
 
 	// 链接配置
 	// 已经预装的图标集：fa7-brands，fa7-regular，fa7-solid，material-symbols，simple-icons

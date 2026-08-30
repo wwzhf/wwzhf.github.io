@@ -1,0 +1,24 @@
+---
+import { getEntry, render } from "astro:content";
+import Markdown from "@components/common/Markdown.astro";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+
+// 通用内容页模板：内容来自 src/content/spec/ 下同名 md 文件
+const entry = await getEntry("spec", "footprint");
+
+if (!entry) {
+	throw new Error("Page content not found: spec/footprint");
+}
+
+const { Content } = await render(entry);
+---
+
+<MainGridLayout title="足迹" description="足迹">
+    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+        <div class="card-base z-10 px-9 py-6 relative w-full ">
+            <Markdown class="mt-2">
+                <Content />
+            </Markdown>
+        </div>
+    </div>
+</MainGridLayout>

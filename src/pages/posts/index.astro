@@ -1,0 +1,24 @@
+---
+import PostPage from "@/components/layout/PostPage.astro";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { getSortedPosts } from "@/utils/content-utils";
+
+// 文章列表页：一页展示全部文章（复用首页的 PostPage 渲染）
+const data = await getSortedPosts();
+
+// PostPage 组件只读取 page.data，这里构造一个兼容的分页对象
+const page = {
+	data,
+	total: 1,
+	size: data.length,
+	currentPage: 1,
+	lastPage: 1,
+	start: 1,
+	end: data.length,
+	url: { current: "/posts/", first: "/posts/", last: "/posts/" },
+};
+---
+
+<MainGridLayout>
+    <PostPage page={page} />
+</MainGridLayout>
