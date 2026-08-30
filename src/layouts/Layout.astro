@@ -20,6 +20,7 @@ import {
 	expressiveCodeConfig,
 	musicPlayerConfig,
 	profileConfig,
+	sakuraConfig,
 	siteConfig,
 } from "@/config";
 import {
@@ -491,8 +492,8 @@ const siteLogo = await getSiteLogo();
     )}
 
 
-    <!-- Sakura Effect -->
-    <SakuraEffect />
+    <!-- Sakura Effect（配置关闭时不加载脚本） -->
+    {sakuraConfig.enable && <SakuraEffect />}
 
     <!-- Water Waves Effect -->
     <WavesEffect />
