@@ -1,6 +1,7 @@
 ---
 import { getEntry, render } from "astro:content";
 import Markdown from "@components/common/Markdown.astro";
+import CmsEditButton from "@/components/misc/CmsEditButton.astro";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
 // 通用内容页模板：内容来自 src/content/spec/ 下同名 md 文件
@@ -21,4 +22,5 @@ const { Content } = await render(entry);
             </Markdown>
         </div>
     </div>
+    <CmsEditButton collection="pages" entry="plans" />
 </MainGridLayout>

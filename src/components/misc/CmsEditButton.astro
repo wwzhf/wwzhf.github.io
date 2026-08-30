@@ -1,0 +1,61 @@
+---
+import { Icon } from "astro-icon/components";
+import { url } from "@/utils/url-utils";
+
+// 前端快捷编辑按钮：跳转到 /admin/ 后台对应条目的编辑页
+// collection: CMS 栏目名（posts / pages / dynamic）
+// entry: 具体条目名（文章为文件名去扩展名；pages 为 config.yml 中 files 的 name）
+// entry 留空则打开后台对应栏目列表
+interface Props {
+	collection: string;
+	entry?: string;
+}
+
+const { collection, entry } = Astro.props;
+const target = entry
+	? `${url("/admin/")}#/collections/${collection}/entries/${entry}`
+	: `${url("/admin/")}#/collections/${collection}`;
+---
+
+<a
+	href={target}
+	target="_blank"
+	rel="noopener"
+	class="cms-edit-btn"
+	title="在内容后台中编辑本页"
+	aria-label="在内容后台中编辑本页"
+>
+	<Icon name="material-symbols:edit-rounded" class="text-[1.35rem]" />
+</a>
+
+<style>
+	.cms-edit-btn {
+		position: fixed;
+		right: 1rem;
+		bottom: 6rem;
+		z-index: 60;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.6rem;
+		height: 2.6rem;
+		border-radius: 999px;
+		background: var(--primary, #10b981);
+		color: #fff;
+		box-shadow:
+			0 4px 14px color-mix(in srgb, var(--primary, #10b981) 40%, transparent);
+		transition:
+			transform 0.15s ease,
+			opacity 0.15s ease;
+		opacity: 0.85;
+	}
+	.cms-edit-btn:hover {
+		transform: scale(1.08);
+		opacity: 1;
+	}
+	@media print {
+		.cms-edit-btn {
+			display: none;
+		}
+	}
+</style>

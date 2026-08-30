@@ -8,6 +8,7 @@ import License from "@components/misc/License.astro";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import CmsEditButton from "@/components/misc/CmsEditButton.astro";
 import {
 	getRelatedPosts,
 	getSeriesPosts,
@@ -76,6 +77,8 @@ const bannerPostMeta = {
 // 处理随机图：如果image为"api"，则从配置的API获取随机图
 const processedImage = processCoverImageSync(entry.data.image, entry.id);
 const apiUrls = getApiUrlList(entry.data.image, entry.id);
+// 前端快捷编辑：CMS 中该文章的条目名（文件名去扩展名）
+const cmsEntry = removeFileExtension(entry.id);
 const showPostCover = Boolean(processedImage && coverImageConfig.enableInPost);
 const usePostCoverOverlay =
 	showPostCover && (coverImageConfig.enableInPostOverlay ?? true);
@@ -691,4 +694,6 @@ const seriesData = await getSeriesPosts(entry);
 
   <!-- 评论 -->
   {entry.data.comment && !entry.data.password && <Comment post={entry} />}
+
+  <CmsEditButton collection="posts" entry={cmsEntry} />
 </MainGridLayout>

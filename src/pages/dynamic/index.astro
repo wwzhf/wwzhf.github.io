@@ -2,6 +2,7 @@
 import { Icon } from "astro-icon/components";
 import DynamicFeed from "@/components/pages/dynamic/DynamicFeed.svelte";
 import DynamicItemTemplate from "@/components/pages/dynamic/DynamicItemTemplate.astro";
+import CmsEditButton from "@/components/misc/CmsEditButton.astro";
 import { commentConfig, dynamicConfig, siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
@@ -84,4 +85,5 @@ const memos = dynamicConfig.memos;
 			<DynamicItemTemplate />
 		</div>
 	</section>
+	<CmsEditButton collection="dynamic" />
 </MainGridLayout>
