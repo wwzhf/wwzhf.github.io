@@ -12,15 +12,9 @@ const pages = resolvePageToggles({
 
 	// 友链页面开关
 	friends: true,
-	// 留言板页面开关，需要配置评论系统
-	guestbook: true,
 
 	// ── 我的 (My) ──────────────────────────────────
 
-	// 动态页面开关
-	dynamic: true,
-	// 相册页面开关
-	gallery: true,
 	// 书签导航页面开关
 	booknav: true,
 	// 哔哩哔哩追番页面开关（⚠️ 需在下方 bilibili.uid 填你自己的B站UID）

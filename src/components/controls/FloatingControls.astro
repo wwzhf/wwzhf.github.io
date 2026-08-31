@@ -20,14 +20,10 @@ const tocHeadings = headings ?? [];
 
 <div class="fqzlr-dock" id="fqzlr-dock" data-collapsed="false">
 	<div class="dock-panel">
-		<!-- 主组：主题 / 留言 / 主题色 -->
+		<!-- 主组：主题 / 主题色 -->
 		<div class="dock-item dock-item-switch">
 			<LightDarkSwitch client:load />
 		</div>
-		<a class="dock-item dock-btn" href={url("/guestbook/")} title="留言板" aria-label="留言板">
-			<Icon name="material-symbols:chat-bubble-rounded" class="dock-icon" />
-			<span class="dock-label">留言</span>
-		</a>
 		<button class="dock-item dock-btn" id="dock-settings-btn" title="主题色" aria-label="主题色">
 			<Icon name="material-symbols:palette-rounded" class="dock-icon" />
 			<span class="dock-label">主题色</span>

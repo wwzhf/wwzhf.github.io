@@ -22,9 +22,6 @@ if (/^\/posts\/[^/]+\/?$/.test(path)) {
 } else if (path === "/about/") {
 	collection = "pages";
 	entry = "about";
-} else if (path === "/guestbook/") {
-	collection = "pages";
-	entry = "guestbook";
 } else if (path === "/changelog/" || path === "/timeline/") {
 	collection = "pages";
 	entry = "changelog";
@@ -37,8 +34,6 @@ if (/^\/posts\/[^/]+\/?$/.test(path)) {
 } else if (path === "/footprint/") {
 	collection = "pages";
 	entry = "footprint";
-} else if (path.startsWith("/dynamic/")) {
-	collection = "dynamic";
 }
 
 const buildHref = (mode: "new" | "edit") => {

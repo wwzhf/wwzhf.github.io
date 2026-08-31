@@ -37,35 +37,6 @@ const links: NavBarLink[] = [
 		url: "/projects/",
 	},
 	{
-		name: "动态",
-		url: "#",
-		children: [
-			{
-				name: "动态",
-				url: "/dynamic/",
-				pageKey: "dynamic",
-			},
-			{
-				name: "说说",
-				url: "/moments/",
-			},
-			{
-				name: "朋友圈",
-				url: "/pengyou/",
-			},
-			{
-				name: "相册",
-				url: "/gallery/",
-				pageKey: "gallery",
-			},
-			{
-				name: "留言板",
-				url: "/guestbook/",
-				pageKey: "guestbook",
-			},
-		],
-	},
-	{
 		name: "记录",
 		url: "#",
 		children: [

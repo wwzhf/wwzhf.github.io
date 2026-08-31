@@ -275,10 +275,6 @@
 			const finalSlug = slug || titleToSlug(title);
 			return "src/content/posts/" + (finalSlug || "untitled") + ".md";
 		}
-		if (collection === "dynamic") {
-			const finalSlug = slug || titleToSlug(title) || ("dynamic-" + Date.now());
-			return "src/content/dynamic/" + finalSlug + ".json";
-		}
 		return "src/content/spec/" + (entry || slug || titleToSlug(title) || "untitled") + ".md";
 	}
 

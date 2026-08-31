@@ -41,17 +41,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	// 右侧边栏组件配置列表（fqzlr 布局已移除右侧 widget 栏，全部禁用）
 	rightComponents: [
 		{
-			type: "dynamic",
-			enable: false,
-			position: "top",
-			showOnPostPage: true,
-			specificConfig: {
-				dynamic: {
-					limit: 2,
-				},
-			},
-		},
-		{
 			type: "stats",
 			enable: false,
 			position: "top",
@@ -137,16 +126,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			type: "profile",
 			enable: true,
 			showOnPostPage: true,
-		},
-		{
-			type: "dynamic",
-			enable: true,
-			showOnPostPage: true,
-			specificConfig: {
-				dynamic: {
-					limit: 2,
-				},
-			},
 		},
 		{
 			type: "stats",
