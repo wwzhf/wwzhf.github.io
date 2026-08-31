@@ -1,10 +1,8 @@
 ---
 import { getEntry, render } from "astro:content";
-import Comment from "@components/comment/index.astro";
 import Markdown from "@components/common/Markdown.astro";
 import { Icon } from "astro-icon/components";
 import {
-	commentConfig,
 	friendsPageConfig,
 	getEnabledFriends,
 	siteConfig,
@@ -26,11 +24,6 @@ if (!siteConfig.pages.friends) {
 const friendsPost = await getEntry("spec", "friends");
 if (!friendsPost) throw new Error("friends page content not found");
 const { Content } = await render(friendsPost);
-
-const isCommentEnabled =
-	commentConfig?.type &&
-	commentConfig.type !== "none" &&
-	friendsPageConfig.showComment !== false;
 
 const items = getEnabledFriends();
 const allTags = [...new Set(items.flatMap((item) => item.tags || []))].sort();
@@ -161,15 +154,6 @@ const description =
 					<Markdown>
 						<Content />
 					</Markdown>
-				</div>
-			)
-		}
-
-		<!-- 评论区 -->
-		{
-			isCommentEnabled && (
-				<div class="mt-6">
-					<Comment post={friendsPost} customPath="/friends/" />
 				</div>
 			)
 		}

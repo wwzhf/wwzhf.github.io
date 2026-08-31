@@ -2,10 +2,8 @@ import type { CommentConfig } from "../types/commentConfig";
 
 export const commentConfig: CommentConfig = {
 	// 评论系统类型: none, twikoo, waline, giscus, disqus, artalk，默认为none，即不启用评论系统
-	// ⚠️ 已切 Twikoo（fqzlr 复刻）。上线前必须部署自己的 Twikoo 后端（Vercel / Cloudflare / 腾讯云开发），
-	// 并把下方 twikoo.envId 换成你的部署地址（例如 https://xxx.vercel.app 或腾讯云 env id），
-	// 否则评论区无法加载/提交数据。部署教程：https://twikoo.js.org/quick-start.html
-	type: "twikoo",
+	// 已按用户要求删除全站评论区（2026-08-31）：type 置 none，评论组件移除
+	type: "none",
 
 	//twikoo评论系统配置
 	twikoo: {

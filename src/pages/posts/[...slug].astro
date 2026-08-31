@@ -1,6 +1,5 @@
 ---
 import { render } from "astro:content";
-import Comment from "@components/comment/index.astro";
 import Markdown from "@components/common/Markdown.astro";
 import EncryptedPost from "@components/features/EncryptedPost.astro";
 import KatexManager from "@components/features/KatexManager.astro";
@@ -706,9 +705,6 @@ const seriesData = await getSeriesPosts(entry);
   </div>
 
   <RecommendedPost relatedPosts={relatedPosts} currentPostId={entry.id} />
-
-  <!-- 评论 -->
-  {entry.data.comment && !entry.data.password && <Comment post={entry} />}
 
   <CmsEditButton collection="posts" entry={cmsEntry} />
 </MainGridLayout>
