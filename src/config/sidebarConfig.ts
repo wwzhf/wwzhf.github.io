@@ -17,8 +17,8 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	// 文章详情页隐藏侧边栏，设为 true 则只在首页等非文章页显示
 	hideSidebarOnPostPage: false,
 
-	// 文章详情页保持双侧栏
-	showBothSidebarsOnPostPage: false,
+	// 文章详情页保持双侧栏（文章页右侧显示当前文章目录 sidebarToc）
+	showBothSidebarsOnPostPage: true,
 
 	// 左侧边栏组件配置列表
 	leftComponents: [
@@ -109,7 +109,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 		},
 		{
 			type: "sidebarToc",
-			enable: false,
+			enable: true,
 			position: "sticky",
 			showOnPostPage: true,
 			hideOnNonPostPage: true,
