@@ -71,11 +71,6 @@ const links: NavBarLink[] = [
 				name: "关于我",
 				url: "/about/",
 			},
-			{
-				name: "友链",
-				url: "/friends/",
-				pageKey: "friends",
-			},
 			// P3 新增页面：项目（/projects/）
 			// {
 			// 	name: "项目",

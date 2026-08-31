@@ -8,11 +8,6 @@ const SITE_LANG = resolveSiteLang("zh_CN");
 
 // 页面开关配置 - 控制特定页面的访问权限，设为false会返回404并自动隐藏对应的导航栏菜单项
 const pages = resolvePageToggles({
-	// ── 社交 (Social) ──────────────────────────────────
-
-	// 友链页面开关
-	friends: true,
-
 	// ── 我的 (My) ──────────────────────────────────
 
 	// 书签导航页面开关

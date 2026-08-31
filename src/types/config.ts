@@ -19,7 +19,6 @@ export type {
 } from "./expressiveCodeConfig";
 export type { FontSelectionConfig } from "./fontConfig";
 export type { FooterConfig } from "./footerConfig";
-export type { FriendLink, FriendsPageConfig } from "./friendsConfig";
 export type { LicenseConfig } from "./licenseConfig";
 export type { MermaidConfig } from "./mermaidConfig";
 export type { MusicPlayerConfig } from "./musicConfig";
