@@ -1,0 +1,66 @@
+---
+import { getEntry, render } from "astro:content";
+import Markdown from "@components/common/Markdown.astro";
+import { Icon } from "astro-icon/components";
+import CmsEditButton from "@/components/misc/CmsEditButton.astro";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { url } from "@/utils/url-utils";
+
+// 时间轴页（fqzlr 风格）：TIMELINE 页眉 + 更新日志内容
+const entry = await getEntry("spec", "changelog");
+
+if (!entry) {
+	throw new Error("Page content not found: spec/changelog");
+}
+
+const { Content } = await render(entry);
+---
+
+<MainGridLayout title="更新日志" description="更新日志时间线">
+	<div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+		<div class="card-base z-10 px-4 sm:px-6 md:px-9 py-4 sm:py-6 relative w-full">
+			<!-- 面包屑 -->
+			<nav
+				aria-label="Breadcrumb"
+				class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+			>
+				<a href={url("/")} class="hover:text-(--primary) transition-colors">
+					首页
+				</a>
+				<Icon
+					name="material-symbols:chevron-right-rounded"
+					class="text-[1rem]"
+				/>
+				<span class="text-(--primary)">更新日志</span>
+			</nav>
+
+			<!-- TIMELINE 页眉 -->
+			<div class="mb-4">
+				<div class="text-xs tracking-[0.2em] text-(--content-meta) mb-1">
+					TIMELINE
+				</div>
+				<div class="flex items-center justify-between">
+					<h1
+						class="text-2xl font-bold text-neutral-900 dark:text-neutral-100"
+					>
+						更新日志
+					</h1>
+					<span
+						class="btn-regular rounded-lg h-9 px-3 gap-1.5 text-sm font-bold flex items-center"
+					>
+						<Icon
+							name="material-symbols:timeline-rounded"
+							class="text-[1.15rem] text-(--primary)"
+						/>
+						时间线
+					</span>
+				</div>
+			</div>
+
+			<Markdown class="mt-2">
+				<Content />
+			</Markdown>
+		</div>
+	</div>
+	<CmsEditButton collection="pages" entry="changelog" />
+</MainGridLayout>

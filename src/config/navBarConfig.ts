@@ -38,7 +38,7 @@ const links: NavBarLink[] = [
 	},
 	{
 		name: "网站导航",
-		url: "/booknav/",
+		url: "/projects/",
 	},
 	{
 		name: "动态",
@@ -73,11 +73,10 @@ const links: NavBarLink[] = [
 				name: "音乐",
 				url: "/music/",
 			},
-			// P3 新增页面：动画（/anime/）
-			// {
-			// 	name: "动画",
-			// 	url: "/anime/",
-			// },
+			{
+				name: "动画",
+				url: "/anime/",
+			},
 			{
 				name: "番剧",
 				url: "/bangumi/",
@@ -95,6 +94,10 @@ const links: NavBarLink[] = [
 			{
 				name: "足迹",
 				url: "/footprint/",
+			},
+			{
+				name: "时间轴",
+				url: "/timeline/",
 			},
 		],
 	},
