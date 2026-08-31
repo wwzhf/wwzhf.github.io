@@ -5,7 +5,7 @@
 	// 功能：导入 MD、格式工具栏、字数统计、草稿（localStorage）、发布（GitHub Contents API + PAT）
 
 	type Mode = "new" | "edit";
-	type Collection = "posts" | "pages" | "dynamic";
+	type Collection = "posts" | "pages" | "dynamic" | "config";
 
 	const REPO = "wwzhf/wwzhf.github.io";
 	const BRANCH = "master";
@@ -275,6 +275,9 @@
 			const finalSlug = slug || titleToSlug(title);
 			return "src/content/posts/" + (finalSlug || "untitled") + ".md";
 		}
+		if (collection === "config") {
+			return "src/config/" + (entry || "booknavConfig") + ".ts";
+		}
 		return "src/content/spec/" + (entry || slug || titleToSlug(title) || "untitled") + ".md";
 	}
 
@@ -308,7 +311,8 @@
 		if (!pat) return;
 
 		const path = getTargetPath();
-		const body = buildFrontmatter() + content;
+		// config 集合（如 booknavConfig.ts）是源码文件，不加 frontmatter，直接提交原文
+		const body = collection === "config" ? content : buildFrontmatter() + content;
 		const contentBase64 = btoa(unescape(encodeURIComponent(body)));
 		const message = (draft ? "draft: " : "") + title + " via /write/";
 		const apiUrl =
@@ -415,6 +419,8 @@
 				content = body.trim();
 			} else {
 				content = text;
+				// config 集合（源码文件无 frontmatter）：title 用文件名填充，保证 canPublish 通过
+				if (collection === "config") title = entry || "booknavConfig";
 			}
 			showToast("success", "已加载原文件");
 		} catch (e) {

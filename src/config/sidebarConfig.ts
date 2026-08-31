@@ -36,6 +36,13 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			position: "top",
 			showOnPostPage: true,
 		},
+		{
+			// 组件类型：编辑页面导航卡（仅 /projects/ 网站导航页显示，编辑 booknavConfig.ts）
+			type: "editBooknav",
+			enable: true,
+			position: "top",
+			showOnPostPage: true,
+		},
 	],
 
 	// 右侧边栏组件配置列表

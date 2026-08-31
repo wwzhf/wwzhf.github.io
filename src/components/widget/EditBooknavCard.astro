@@ -1,0 +1,29 @@
+---
+import { Icon } from "astro-icon/components";
+import { url } from "@/utils/url-utils";
+
+// 侧边栏「编辑页面导航」卡（仅 /projects/ 网站导航页显示）
+// 点击进入 /write/ 编辑器（collection=config），加载并编辑 booknavConfig.ts 书签导航配置
+if (Astro.url.pathname !== "/projects/") {
+	return null;
+}
+const href = `${url("/write/")}?mode=edit&collection=config&entry=booknavConfig`;
+---
+
+<div class:list={["card-base", "p-4", Astro.props.class]} style={Astro.props.style}>
+	<div
+		class="flex items-center gap-2 text-base font-bold mb-3 dark:text-neutral-50 transition"
+	>
+		<Icon name="material-symbols:edit-note-rounded" class="text-[1.2rem] text-(--primary)" />
+		<span>页面导航</span>
+	</div>
+	<div class="flex flex-col gap-2">
+		<a
+			href={href}
+			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+		>
+			<Icon name="material-symbols:bookmarks-rounded" class="text-[1.35rem]" />
+			编辑页面导航
+		</a>
+	</div>
+</div>
