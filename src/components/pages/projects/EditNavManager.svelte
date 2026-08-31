@@ -1,7 +1,8 @@
 <script lang="ts">
-	// /projects/ 网站导航编辑面板：可视化添加/删除分组与书签
-	// 数据读写：GitHub Contents API 操作 src/config/booknavConfig.ts
-	// （NAV-DATA-START/END 标记之间为 JSON 数据区，客户端整体替换）
+	// /projects/ 网站导航编辑（fqzlr 风格内联编辑模式）
+	// 点击侧边栏「编辑网站导航」/ 锚点 #edit-nav → 页面进入编辑模式：
+	// 每个书签卡片叠加 上移/下移/编辑/删除，分组可排序/改名/删除，支持添加书签/分组
+	// 保存：GitHub Contents API 标记替换 NAV-DATA-START/END 数据区（PAT 复用 write-github-pat）
 
 	interface NavItem {
 		title: string;
@@ -13,8 +14,8 @@
 	interface NavGroup {
 		id: string;
 		name: string;
-		icon?: string;
 		desc?: string;
+		icon?: string;
 		weight?: number;
 		items: NavItem[];
 	}
@@ -26,98 +27,159 @@
 	const END_MARK = "// ===== NAV-DATA-END =====";
 	const PAT_KEY = "write-github-pat";
 
-	let open = $state(false);
-	let loading = $state(false);
+	let { groups = [] }: { groups: NavGroup[] } = $props();
+
+	let editing = $state(false);
 	let saving = $state(false);
 	let error = $state("");
 	let okMsg = $state("");
-	let groups: NavGroup[] = $state([]);
-
-	function pat(): string {
-		return localStorage.getItem(PAT_KEY) || "";
-	}
-
-	// 打开面板：从 GitHub 拉取当前 booknavConfig.ts 并解析数据区
-	async function openPanel(): Promise<void> {
-		open = true;
-		error = "";
-		okMsg = "";
-		const token = pat();
-		if (!token) {
-			error = "请先在 /write/ 编辑器导入 GitHub Token（或本页下方输入）";
-			return;
-		}
-		loading = true;
-		try {
-			const res = await fetch(
-				"https://api.github.com/repos/" + REPO + "/contents/" + FILE + "?ref=" + BRANCH,
-				{ headers: { Authorization: "token " + token } },
-			);
-			if (!res.ok) throw new Error("拉取失败 HTTP " + res.status);
-			const data = await res.json();
-			const text = atob(data.content.replace(/\n/g, ""));
-			const m = text.match(
-				new RegExp(START_MARK + "\\n([\\s\\S]*?)\\n" + END_MARK),
-			);
-			if (!m) throw new Error("未找到数据区标记（NAV-DATA-START/END）");
-			groups = JSON.parse(m[1]);
-			// 归一化：id 缺失则补
-			groups.forEach((g) => {
-				if (!g.id) g.id = "group-" + Math.random().toString(36).slice(2, 8);
-				if (!g.items) g.items = [];
-			});
-		} catch (e) {
-			error = "加载失败：" + (e as Error).message;
-		}
-		loading = false;
-	}
+	let editGroups: NavGroup[] = $state([]);
+	// 正在编辑的卡片表单："gi-ii"；正在添加书签的分组索引
+	let editingCard = $state<string | null>(null);
+	let addingIn = $state<number | null>(null);
+	// 正在编辑的分组名表单
+	let editingGroupName = $state<number | null>(null);
+	let addingGroup = $state(false);
 
 	function uid(): string {
 		return Math.random().toString(36).slice(2, 8);
 	}
 
-	function addGroup(): void {
-		groups.push({
-			id: "group-" + uid(),
-			name: "新分组",
-			desc: "",
-			icon: "material-symbols:folder-open-rounded",
-			weight: 100,
-			items: [],
-		});
+	function hideStatic(): void {
+		document.querySelector(".booknav-static")?.classList.add("hidden");
+	}
+	function showStatic(): void {
+		document.querySelector(".booknav-static")?.classList.remove("hidden");
 	}
 
+	function startEdit(): void {
+		if (editing) return;
+		editGroups = structuredClone(groups);
+		editing = true;
+		error = "";
+		okMsg = "";
+		hideStatic();
+	}
+
+	function exitEdit(): void {
+		editing = false;
+		editingCard = null;
+		addingIn = null;
+		addingGroup = false;
+		showStatic();
+	}
+
+	function checkHash(): void {
+		if (window.location.hash === "#edit-nav") startEdit();
+	}
+	$effect(() => {
+		if (typeof window === "undefined") return;
+		checkHash();
+		window.addEventListener("hashchange", checkHash);
+		return () => window.removeEventListener("hashchange", checkHash);
+	});
+
+	// ── 分组操作 ──
+	function moveGroup(gi: number, dir: -1 | 1): void {
+		const to = gi + dir;
+		if (to < 0 || to >= editGroups.length) return;
+		const arr = editGroups;
+		const tmp = arr[gi];
+		arr[gi] = arr[to];
+		arr[to] = tmp;
+		editGroups = [...arr];
+	}
 	function delGroup(gi: number): void {
-		if (!confirm('删除分组「' + (groups[gi].name || "未命名") + '」及其全部书签？')) return;
-		groups.splice(gi, 1);
+		const g = editGroups[gi];
+		if (!confirm('删除分组「' + (g.name || "未命名") + '」及其全部书签？')) return;
+		editGroups = editGroups.filter((_, i) => i !== gi);
+	}
+	function renameGroup(gi: number): void {
+		editingGroupName = editingGroupName === gi ? null : gi;
 	}
 
-	function addItem(gi: number): void {
-		groups[gi].items.push({ title: "", url: "https://", desc: "" });
+	// ── 书签操作 ──
+	function moveItem(gi: number, ii: number, dir: -1 | 1): void {
+		const items = editGroups[gi].items;
+		const to = ii + dir;
+		if (to < 0 || to >= items.length) return;
+		const tmp = items[ii];
+		items[ii] = items[to];
+		items[to] = tmp;
+		editGroups = [...editGroups];
 	}
-
 	function delItem(gi: number, ii: number): void {
-		const item = groups[gi].items[ii];
-		if (!confirm('删除书签「' + (item.title || "未命名") + '」？')) return;
-		groups[gi].items.splice(ii, 1);
+		const it = editGroups[gi].items[ii];
+		if (!confirm('删除书签「' + (it.title || "未命名") + '」？')) return;
+		editGroups[gi].items = editGroups[gi].items.filter((_, i) => i !== ii);
+		editGroups = [...editGroups];
+	}
+	function beginEditItem(gi: number, ii: number): void {
+		editingCard = gi + "-" + ii;
+	}
+	function beginAddItem(gi: number): void {
+		addingIn = addingIn === gi ? null : gi;
+	}
+	function confirmAddItem(gi: number): void {
+		const items = editGroups[gi].items;
+		const title = (document.getElementById("en-new-title") as HTMLInputElement | null)?.value.trim() || "";
+		const url = (document.getElementById("en-new-url") as HTMLInputElement | null)?.value.trim() || "";
+		const desc = (document.getElementById("en-new-desc") as HTMLInputElement | null)?.value.trim() || "";
+		if (!title || !url) {
+			error = "新书签的标题和网址必填";
+			return;
+		}
+		items.push({ title, url, desc: desc || undefined });
+		editGroups = [...editGroups];
+		addingIn = null;
+		error = "";
+	}
+	function addGroup(): void {
+		editGroups = [
+			...editGroups,
+			{ id: "group-" + uid(), name: "新分组", desc: "", items: [] },
+		];
+		editingGroupName = editGroups.length - 1;
 	}
 
-	// 序列化数据区（JSON，美化缩进）
+	// 表单保存（编辑中的卡片）——通过 DOM 读取输入值
+	function saveCard(gi: number, ii: number): void {
+		const item = editGroups[gi].items[ii];
+		const get = (id: string): string =>
+			(document.getElementById(id) as HTMLInputElement | null)?.value.trim() || "";
+		item.title = get("en-title-" + gi + "-" + ii) || item.title;
+		item.url = get("en-url-" + gi + "-" + ii) || item.url;
+		item.desc = get("en-desc-" + gi + "-" + ii) || undefined;
+		editGroups = [...editGroups];
+		editingCard = null;
+	}
+
+	function saveGroupName(gi: number): void {
+		const g = editGroups[gi];
+		const el = document.getElementById("en-group-name-" + gi) as HTMLInputElement | null;
+		if (el && el.value.trim()) g.name = el.value.trim();
+		editGroups = [...editGroups];
+		editingGroupName = null;
+	}
+
+	// ── 保存到 GitHub ──
+	function pat(): string {
+		return localStorage.getItem(PAT_KEY) || "";
+	}
+
 	function serializeData(): string {
-		return JSON.stringify(groups, null, "\t");
+		return JSON.stringify(editGroups, null, "\t");
 	}
 
-	// 保存：拉最新文件 → 替换数据区 → PUT 提交
 	async function save(): Promise<void> {
 		error = "";
 		okMsg = "";
 		const token = pat();
 		if (!token) {
-			error = "请先导入 GitHub Token";
+			error = "未检测到 GitHub Token：请先在 /write/ 页导入密钥（或粘贴到下方输入框）";
 			return;
 		}
-		// 校验必填
-		for (const g of groups) {
+		for (const g of editGroups) {
 			if (!g.name.trim()) {
 				error = "存在未命名的分组，请填写分组名称";
 				return;
@@ -152,12 +214,6 @@
 				END_MARK +
 				text.slice(m.index + m[0].length);
 
-			const body = {
-				message: "Update website nav via /projects/ edit panel",
-				content: btoa(unescape(encodeURIComponent(newText))),
-				sha: data.sha,
-				branch: BRANCH,
-			};
 			const putRes = await fetch(
 				"https://api.github.com/repos/" + REPO + "/contents/" + FILE,
 				{
@@ -166,7 +222,12 @@
 						Authorization: "token " + token,
 						"Content-Type": "application/json",
 					},
-					body: JSON.stringify(body),
+					body: JSON.stringify({
+						message: "Update website nav via /projects/ inline edit",
+						content: btoa(unescape(encodeURIComponent(newText))),
+						sha: data.sha,
+						branch: BRANCH,
+					}),
 				},
 			);
 			if (!putRes.ok) {
@@ -180,108 +241,194 @@
 		saving = false;
 	}
 
-	// 页面锚点 #edit-nav 触发打开
-	function checkHash(): void {
-		if (window.location.hash === "#edit-nav" && !open) {
-			openPanel();
+	// 客户端 favicon 辅助：icon 为 URL 直接显示，否则用 favicon.im
+	function itemIcon(item: NavItem): string | null {
+		if (item.icon && /^(https?:|\/)/.test(item.icon)) return item.icon;
+		try {
+			const domain = new URL(item.url).hostname;
+			return "https://a.favicon.im/" + domain;
+		} catch {
+			return null;
 		}
 	}
-	$effect(() => {
-		if (typeof window === "undefined") return;
-		checkHash();
-		window.addEventListener("hashchange", checkHash);
-		return () => window.removeEventListener("hashchange", checkHash);
-	});
+	function domainOf(url: string): string {
+		try {
+			return new URL(url).hostname;
+		} catch {
+			return url;
+		}
+	}
+	function titleLetter(t: string): string {
+		return (t.trim()[0] || "?").toUpperCase();
+	}
 </script>
 
-<div id="edit-nav" class="edit-nav-manager">
-	<div class="edit-nav-header">
-		<div>
-			<div class="edit-nav-title">网站导航管理</div>
-			<div class="edit-nav-sub">可视化添加 / 删除分组与书签，保存后自动提交部署</div>
+{#if editing}
+	<div class="en-toolbar">
+		<div class="en-toolbar-left">
+			<span class="en-badge">编辑模式</span>
+			<span class="en-hint">上移/下移排序 · 编辑 · 删除 · 添加，完成后保存到 GitHub</span>
 		</div>
-		<button class="en-btn en-primary" onclick={open ? save : openPanel} disabled={loading || saving}>
-			{open ? (saving ? "保存中..." : "💾 保存到 GitHub") : "✏️ 编辑页面导航"}
-		</button>
+		<div class="en-toolbar-actions">
+			{#if !pat()}
+				<input
+					id="en-pat-input"
+					class="en-pat-input"
+					type="password"
+					placeholder="粘贴 GitHub Token（写入浏览器本地）"
+					onchange={(e) => {
+						const v = (e.currentTarget as HTMLInputElement).value.trim();
+						if (v) localStorage.setItem(PAT_KEY, v);
+					}}
+				/>
+			{/if}
+			<button class="en-btn en-ghost" onclick={exitEdit}>取消</button>
+			<button class="en-btn en-primary" onclick={save} disabled={saving}>
+				{saving ? "保存中..." : "💾 保存到 GitHub"}
+			</button>
+		</div>
 	</div>
 
-	{#if open}
-		{#if error}
-			<div class="en-toast en-error">{error}</div>
-		{/if}
-		{#if okMsg}
-			<div class="en-toast en-ok">{okMsg}</div>
-		{/if}
-		{#if loading}
-			<div class="en-loading">正在从 GitHub 加载导航配置...</div>
-		{:else}
-			<div class="en-tip">未导入 Token？点右上角「编辑页面导航」后会提示，也可先在 /write/ 页导入。每次进入编辑会自动拉取最新配置。</div>
-			<div class="en-groups">
-				{#each groups as group, gi (group.id)}
-					<div class="en-group">
-						<div class="en-group-head">
-							<input
-								class="en-input en-input-name"
-								placeholder="分组名称"
-								bind:value={group.name}
-							/>
-							<input
-								class="en-input en-input-icon"
-								placeholder="图标(可选) iconify名"
-								bind:value={group.icon}
-							/>
-							<button class="en-btn en-danger" onclick={() => delGroup(gi)} title="删除分组">🗑 删除分组</button>
-						</div>
-						<input
-							class="en-input en-input-desc"
-							placeholder="分组描述（可选）"
-							bind:value={group.desc}
-						/>
-						<div class="en-items">
-							{#each group.items as item, ii (gi + "-" + ii)}
-								<div class="en-item">
-									<input class="en-input" placeholder="标题 *" bind:value={item.title} />
-									<input class="en-input" placeholder="网址 * https://..." bind:value={item.url} />
-									<input class="en-input" placeholder="描述（可选）" bind:value={item.desc} />
-									<button class="en-btn en-danger" onclick={() => delItem(gi, ii)} title="删除书签">✕</button>
-								</div>
-							{/each}
-							<button class="en-btn en-add" onclick={() => addItem(gi)}>＋ 添加书签</button>
-						</div>
-					</div>
-				{/each}
-				<button class="en-btn en-add en-add-group" onclick={addGroup}>＋ 添加分组</button>
-			</div>
-		{/if}
+	{#if error}
+		<div class="en-toast en-error">{error}</div>
 	{/if}
-</div>
+	{#if okMsg}
+		<div class="en-toast en-ok">{okMsg}</div>
+	{/if}
+
+	<div class="en-list">
+		{#each editGroups as group, gi (group.id)}
+			<section class="en-group">
+				<div class="en-group-head">
+					{#if editingGroupName === gi}
+						<input
+							id={"en-group-name-" + gi}
+							class="en-input en-group-name"
+							value={group.name}
+							onkeydown={(e) => {
+								if (e.key === "Enter") saveGroupName(gi);
+							}}
+						/>
+						<button class="en-btn en-mini en-primary" onclick={() => saveGroupName(gi)}>✓</button>
+					{:else}
+						<span class="en-group-title">{group.name}</span>
+						{#if group.desc}
+							<span class="en-group-desc">{group.desc}</span>
+						{/if}
+					{/if}
+					<span class="en-count">{group.items.length}</span>
+					<div class="en-group-ops">
+						<button class="en-btn en-mini" title="分组上移" onclick={() => moveGroup(gi, -1)}>↑</button>
+						<button class="en-btn en-mini" title="分组下移" onclick={() => moveGroup(gi, 1)}>↓</button>
+						<button class="en-btn en-mini" title="重命名" onclick={() => renameGroup(gi)}>✎</button>
+						<button class="en-btn en-mini en-danger" title="删除分组" onclick={() => delGroup(gi)}>🗑</button>
+						<button class="en-btn en-mini en-add2" title="添加书签" onclick={() => beginAddItem(gi)}>＋</button>
+					</div>
+				</div>
+
+				<div class="en-grid">
+					{#each group.items as item, ii (gi + "-" + ii)}
+						{#if editingCard === gi + "-" + ii}
+							<div class="en-card en-card-form">
+								<input id={"en-title-" + gi + "-" + ii} class="en-input" value={item.title} placeholder="标题 *" />
+								<input id={"en-url-" + gi + "-" + ii} class="en-input" value={item.url} placeholder="网址 * https://..." />
+								<input id={"en-desc-" + gi + "-" + ii} class="en-input" value={item.desc || ""} placeholder="描述（可选）" />
+								<div class="en-form-ops">
+									<button class="en-btn en-mini en-primary" onclick={() => saveCard(gi, ii)}>完成</button>
+									<button class="en-btn en-mini" onclick={() => (editingCard = null)}>取消</button>
+								</div>
+							</div>
+						{:else}
+							<div class="en-card">
+								<div class="en-card-icon">
+									{#if itemIcon(item)}
+										<img src={itemIcon(item)!} alt="" loading="lazy" class="en-card-img" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+									{:else}
+										<span class="en-card-letter">{titleLetter(item.title)}</span>
+									{/if}
+								</div>
+								<div class="en-card-body">
+									<div class="en-card-title">{item.title}</div>
+									<div class="en-card-desc">{item.desc || domainOf(item.url)}</div>
+								</div>
+								<div class="en-card-ops">
+									<button class="en-btn en-mini" title="上移" onclick={() => moveItem(gi, ii, -1)}>↑</button>
+									<button class="en-btn en-mini" title="下移" onclick={() => moveItem(gi, ii, 1)}>↓</button>
+									<button class="en-btn en-mini" title="编辑" onclick={() => beginEditItem(gi, ii)}>✎</button>
+									<button class="en-btn en-mini en-danger" title="删除" onclick={() => delItem(gi, ii)}>✕</button>
+								</div>
+							</div>
+						{/if}
+					{/each}
+
+					{#if addingIn === gi}
+						<div class="en-card en-card-form">
+							<input id="en-new-title" class="en-input" placeholder="标题 *" />
+							<input id="en-new-url" class="en-input" placeholder="网址 * https://..." />
+							<input id="en-new-desc" class="en-input" placeholder="描述（可选）" />
+							<div class="en-form-ops">
+								<button class="en-btn en-mini en-primary" onclick={() => confirmAddItem(gi)}>添加</button>
+								<button class="en-btn en-mini" onclick={() => (addingIn = null)}>取消</button>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+		{/each}
+
+		<button class="en-btn en-add-group" onclick={addGroup}>＋ 添加分组</button>
+	</div>
+{/if}
 
 <style>
-	.edit-nav-manager {
-		margin-top: 1rem;
-		background: var(--card-bg, #fff);
-		border: 1px solid var(--line-divider, #e5e7eb);
-		border-radius: 0.9rem;
-		padding: 1rem 1.25rem;
-	}
-	.edit-nav-header {
+	.en-toolbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		padding: 0.75rem 1rem;
+		margin-bottom: 1rem;
+		background: var(--card-bg, #fff);
+		border: 1px solid var(--line-divider, #e5e7eb);
+		border-radius: 0.75rem;
+	}
+	.en-toolbar-left {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
 		flex-wrap: wrap;
 	}
-	.edit-nav-title {
+	.en-badge {
+		font-size: 0.75rem;
 		font-weight: 700;
-		font-size: 1.05rem;
+		padding: 0.15rem 0.5rem;
+		border-radius: 999px;
+		background: var(--primary, #10b981);
+		color: #fff;
 	}
-	.edit-nav-sub {
-		font-size: 0.8rem;
+	.en-hint {
+		font-size: 0.78rem;
 		color: var(--content-meta, #6b7280);
-		margin-top: 0.15rem;
+	}
+	.en-toolbar-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	.en-pat-input {
+		padding: 0.35rem 0.6rem;
+		border: 1px solid var(--line-divider, #e5e7eb);
+		border-radius: 0.4rem;
+		background: transparent;
+		color: inherit;
+		font-size: 0.8rem;
+		width: 15rem;
+		max-width: 40vw;
 	}
 	.en-btn {
-		padding: 0.45rem 0.9rem;
+		padding: 0.4rem 0.8rem;
 		border-radius: 0.5rem;
 		font-size: 0.85rem;
 		font-weight: 600;
@@ -299,18 +446,21 @@
 		border-color: var(--primary, #10b981);
 		color: #fff;
 	}
+	.en-ghost {
+		opacity: 0.8;
+	}
+	.en-mini {
+		padding: 0.2rem 0.45rem;
+		font-size: 0.78rem;
+		line-height: 1;
+	}
 	.en-danger {
 		color: #ef4444;
 		border-color: rgba(239, 68, 68, 0.35);
 	}
-	.en-add {
+	.en-add2 {
 		color: var(--primary, #10b981);
-		border-style: dashed;
-		width: 100%;
-		margin-top: 0.4rem;
-	}
-	.en-add-group {
-		margin-top: 0.9rem;
+		border-color: rgba(16, 185, 129, 0.35);
 	}
 	.en-toast {
 		padding: 0.6rem 0.9rem;
@@ -328,32 +478,121 @@
 		color: var(--primary, #10b981);
 		border: 1px solid rgba(16, 185, 129, 0.3);
 	}
-	.en-loading {
-		padding: 1.5rem 0;
-		text-align: center;
-		color: var(--content-meta, #6b7280);
-		font-size: 0.9rem;
-	}
-	.en-tip {
-		font-size: 0.75rem;
-		color: var(--content-meta, #6b7280);
-		margin-bottom: 0.8rem;
-	}
-	.en-groups {
+	.en-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.9rem;
+		gap: 1.2rem;
 	}
 	.en-group {
 		border: 1px solid var(--line-divider, #e5e7eb);
-		border-radius: 0.7rem;
-		padding: 0.8rem;
+		border-radius: 0.75rem;
+		padding: 0.9rem;
 	}
 	.en-group-head {
 		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
 		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.7rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid var(--line-divider, #e5e7eb);
+	}
+	.en-group-title {
+		font-weight: 700;
+		font-size: 1rem;
+	}
+	.en-group-desc {
+		font-size: 0.78rem;
+		color: var(--content-meta, #6b7280);
+	}
+	.en-group-name {
+		width: 12rem;
+	}
+	.en-count {
+		font-size: 0.72rem;
+		color: var(--content-meta, #6b7280);
+		background: rgba(127, 127, 127, 0.1);
+		padding: 0.1rem 0.45rem;
+		border-radius: 999px;
+	}
+	.en-group-ops {
+		margin-left: auto;
+		display: flex;
+		gap: 0.3rem;
+		flex-wrap: wrap;
+	}
+	.en-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 0.6rem;
+	}
+	.en-card {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.55rem 0.7rem;
+		border: 1px solid var(--line-divider, #e5e7eb);
+		border-radius: 0.6rem;
+		background: transparent;
+	}
+	.en-card-icon {
+		width: 2.4rem;
+		height: 2.4rem;
+		border-radius: 0.5rem;
+		overflow: hidden;
+		background: rgba(127, 127, 127, 0.08);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.en-card-img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+	.en-card-letter {
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--primary, #10b981);
+	}
+	.en-card-body {
+		flex: 1;
+		min-width: 0;
+	}
+	.en-card-title {
+		font-weight: 600;
+		font-size: 0.9rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.en-card-desc {
+		font-size: 0.76rem;
+		color: var(--content-meta, #6b7280);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.en-card-ops {
+		display: flex;
+		gap: 0.25rem;
+		flex-shrink: 0;
+		opacity: 0.65;
+	}
+	.en-card-ops:hover {
+		opacity: 1;
+	}
+	.en-card-form {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.4rem;
+		background: rgba(127, 127, 127, 0.05);
+	}
+	.en-form-ops {
+		display: flex;
+		gap: 0.4rem;
+		justify-content: flex-end;
 	}
 	.en-input {
 		padding: 0.4rem 0.6rem;
@@ -362,45 +601,24 @@
 		background: transparent;
 		color: inherit;
 		font-size: 0.85rem;
-		flex: 1 1 0;
-		min-width: 6rem;
 		outline: none;
+		width: 100%;
 	}
 	.en-input:focus {
 		border-color: var(--primary, #10b981);
 	}
-	.en-input-name {
-		flex: 2;
-	}
-	.en-input-icon {
-		flex: 1;
-	}
-	.en-input-desc {
+	.en-add-group {
 		width: 100%;
-		margin-top: 0.45rem;
+		padding: 0.6rem;
+		border-radius: 0.6rem;
+		border: 1px dashed var(--primary, #10b981);
+		color: var(--primary, #10b981);
+		background: transparent;
+		font-size: 0.9rem;
+		font-weight: 600;
+		cursor: pointer;
 	}
-	.en-items {
-		display: flex;
-		flex-direction: column;
-		gap: 0.45rem;
-		margin-top: 0.6rem;
-	}
-	.en-item {
-		display: flex;
-		gap: 0.45rem;
-		align-items: center;
-	}
-	.en-item .en-input:nth-child(1) {
-		flex: 1.2;
-	}
-	.en-item .en-input:nth-child(2) {
-		flex: 1.6;
-	}
-	.en-item .en-input:nth-child(3) {
-		flex: 1.4;
-	}
-	.en-item .en-danger {
-		flex: 0 0 auto;
-		padding: 0.35rem 0.6rem;
+	.en-add-group:hover {
+		background: rgba(16, 185, 129, 0.06);
 	}
 </style>

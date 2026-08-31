@@ -80,8 +80,12 @@ const description = "收录个人网站、常用工具和收藏网站";
         }
       </div>
 
+      <!-- 网站导航编辑（fqzlr 风格内联编辑模式，锚点 #edit-nav 触发；编辑时原位替换静态列表） -->
+      <EditNavManager groups={resolvedGroups} client:load />
+
       {
         totalCount > 0 ? (
+          <div class="booknav-static">
           <booknav-list>
             {/* 搜索框 */}
             <div class="relative mb-3">
@@ -211,6 +215,7 @@ const description = "收录个人网站、常用工具和收藏网站";
               <div class="text-sm">{i18n(I18nKey.searchNoResults)}</div>
             </div>
           </booknav-list>
+          </div>
         ) : (
           <div class="flex flex-col items-center justify-center py-16 text-neutral-400 dark:text-neutral-500">
             <Icon name="material-symbols:bookmarks" class="text-6xl mb-4 opacity-50" />
@@ -353,9 +358,4 @@ const description = "收录个人网站、常用工具和收藏网站";
       justify-content: center;
     }
   </style>
-
-  <!-- 网站导航编辑面板（可视化增删，锚点 #edit-nav） -->
-  <div class="mt-6">
-    <EditNavManager client:load />
-  </div>
 </MainGridLayout>
