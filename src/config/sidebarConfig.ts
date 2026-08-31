@@ -36,33 +36,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			position: "top",
 			showOnPostPage: true,
 		},
-		{
-			// 组件类型：公告组件
-			type: "announcement",
-			enable: true,
-			position: "top",
-			showOnPostPage: true,
-		},
-		{
-			// 组件类型：分类组件
-			type: "categories",
-			enable: true,
-			position: "sticky",
-			showOnPostPage: true,
-			specificConfig: {
-				collapseThreshold: 5,
-			},
-		},
-		{
-			// 组件类型：标签组件
-			type: "tags",
-			enable: true,
-			position: "sticky",
-			showOnPostPage: true,
-			specificConfig: {
-				collapseThreshold: 10,
-			},
-		},
 	],
 
 	// 右侧边栏组件配置列表（fqzlr 布局已移除右侧 widget 栏，全部禁用）
@@ -164,27 +137,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			type: "profile",
 			enable: true,
 			showOnPostPage: true,
-		},
-		{
-			type: "announcement",
-			enable: true,
-			showOnPostPage: true,
-		},
-		{
-			type: "categories",
-			enable: true,
-			showOnPostPage: true,
-			specificConfig: {
-				collapseThreshold: 5,
-			},
-		},
-		{
-			type: "tags",
-			enable: true,
-			showOnPostPage: true,
-			specificConfig: {
-				collapseThreshold: 10,
-			},
 		},
 		{
 			type: "dynamic",

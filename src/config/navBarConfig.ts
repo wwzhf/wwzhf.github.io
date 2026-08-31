@@ -23,10 +23,6 @@ const links: NavBarLink[] = [
 				url: "/posts/",
 			},
 			{
-				name: "分类",
-				url: "/categories/",
-			},
-			{
 				name: "归档",
 				url: "/archive/",
 			},
