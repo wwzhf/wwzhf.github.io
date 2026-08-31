@@ -3,67 +3,241 @@ import { Icon } from "astro-icon/components";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getCategoryList } from "@/utils/content-utils";
+import { getSortedPosts } from "@/utils/content-utils";
+import { getCategoryUrl, getPostUrlBySlug, url } from "@/utils/url-utils";
 
-const categories = await getCategoryList();
-const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
+// 分类标签页（fqzlr 风格）：
+//   面包屑 + TAXONOMY 小标题 + "分类标签"大标题
+//   + tab：文件夹（active）/ 数据图
+//   + 文件夹网格（每个分类可展开：文件夹图标 + 名称 + "N篇文章 · M个标签" + 展开后显示该分类下文章）
+//   + 数据图：水平柱状图（按文章数排序）
+
+const allPosts = await getSortedPosts();
+const UNCATEGORIZED = i18n(I18nKey.uncategorized);
+
+// 按分类聚合
+type CategoryInfo = {
+	name: string;
+	count: number;
+	tags: Set<string>;
+	posts: typeof allPosts;
+};
+const categoryMap = new Map<string, CategoryInfo>();
+for (const post of allPosts) {
+	const raw = post.data.category;
+	const name = raw && String(raw).trim() ? String(raw).trim() : UNCATEGORIZED;
+	if (!categoryMap.has(name)) {
+		categoryMap.set(name, { name, count: 0, tags: new Set(), posts: [] });
+	}
+	const info = categoryMap.get(name)!;
+	info.count += 1;
+	for (const t of post.data.tags || []) info.tags.add(t);
+	info.posts.push(post);
+}
+
+const categories = Array.from(categoryMap.values()).sort(
+	(a, b) => b.count - a.count || a.name.localeCompare(b.name),
+);
+
+const totalPosts = allPosts.length;
+const maxCount = categories.length > 0 ? Math.max(...categories.map((c) => c.count)) : 0;
 ---
 
 <MainGridLayout title={i18n(I18nKey.categories)}>
-    <!-- 页面标题 -->
-    <div class="card-base px-8 py-6 mb-4">
-        <div class="text-2xl font-bold text-(--primary) mb-2">
-            {i18n(I18nKey.categories)}
-        </div>
-        <p class="text-30 text-sm">
-            {i18n(I18nKey.allCategories)} · {totalPosts} {i18n(I18nKey.postsCount)}
-        </p>
-    </div>
+	<category-page>
+		<!-- 页眉：面包屑 + 小标题 + 大标题 -->
+		<div class="card-base px-8 py-6 mb-4">
+			<nav
+				aria-label="Breadcrumb"
+				class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+			>
+				<a href={url("/")} class="hover:text-(--primary) transition-colors">首页</a>
+				<Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
+				<span class="text-(--primary)">分类标签</span>
+			</nav>
+			<div class="text-xs tracking-[0.2em] text-(--primary) mb-1">TAXONOMY</div>
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">分类标签</h1>
+		</div>
 
-    <!-- 分类卡片列表 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-        {
-            categories.map((category, index) => (
-                <a
-                    href={category.url}
-                    class="card-base p-6 flex items-center gap-4 group onload-animation"
-                    style={`animation-delay: calc(var(--content-delay) + ${index * 50}ms);`}
-                >
-                    <div class="shrink-0 w-14 h-14 rounded-full bg-(--primary)/10 group-hover:bg-(--primary)/20 flex items-center justify-center transition-colors">
-                        <Icon
-                            name="material-symbols:folder-open"
-                            class="text-3xl text-(--primary)"
-                        />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h2 class="text-lg font-bold text-90 truncate group-hover:text-(--primary) transition-colors" title={category.name}>
-                            {category.name}
-                        </h2>
-                        <p class="text-sm text-30 mt-1 group-hover:text-(--primary)/60 transition-colors">
-                            {category.count} {i18n(I18nKey.postsCount)}
-                        </p>
-                    </div>
-                    <div class="shrink-0">
-                        <Icon
-                            name="material-symbols:chevron-right-rounded"
-                            class="text-2xl text-30 group-hover:text-(--primary) transition-colors "
-                        />
-                    </div>
-                </a>
-            ))
-        }
-    </div>
+		<!-- tab 切换：文件夹 / 数据图 -->
+		<div class="flex justify-end mb-4">
+			<div
+				role="tablist"
+				aria-label="分类标签视图"
+				class="inline-flex items-center bg-(--card-bg) border border-(--line-divider) rounded-lg p-1"
+			>
+				<button
+					role="tab"
+					data-tab="folders"
+					aria-selected="true"
+					class="cat-tab px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors"
+				>
+					<Icon name="material-symbols:folder-rounded" class="text-base" />
+					文件夹
+				</button>
+				<button
+					role="tab"
+					data-tab="chart"
+					aria-selected="false"
+					class="cat-tab px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors"
+				>
+					<Icon name="material-symbols:bar-chart-rounded" class="text-base" />
+					数据图
+				</button>
+			</div>
+		</div>
 
-    <!-- 空状态 -->
-    {
-        categories.length === 0 && (
-            <div class="card-base px-8 py-12 text-center">
-                <Icon
-                    name="material-symbols:folder-off"
-                    class="text-5xl text-30 mx-auto mb-4"
-                />
-                <p class="text-30">{i18n(I18nKey.noData)}</p>
-            </div>
-        )
-    }
+		<!-- 文件夹视图 -->
+		<div class="cat-panel" data-panel="folders">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				{
+					categories.map((cat) => (
+						<div class="cat-folder card-base overflow-hidden" data-cat={cat.name}>
+							<button
+								class="cat-folder-toggle w-full flex items-center gap-3 px-5 py-5 text-left hover:bg-(--btn-regular-bg-hover) transition-colors"
+								aria-expanded="false"
+							>
+								<div class="h-10 w-10 rounded-lg bg-(--primary)/10 flex items-center justify-center shrink-0">
+									<Icon
+										name="material-symbols:folder-open"
+										class="text-2xl text-(--primary)"
+									/>
+								</div>
+								<div class="grow min-w-0">
+									<div class="font-bold text-base text-neutral-900 dark:text-neutral-100 truncate">
+										{cat.name}
+									</div>
+									<div class="text-xs text-(--content-meta) mt-0.5">
+										{cat.count} 篇文章 · {cat.tags.size} 个标签
+									</div>
+								</div>
+								<Icon
+									name="material-symbols:expand-more-rounded"
+									class="text-(--content-meta) transition-transform cat-folder-arrow"
+								/>
+							</button>
+							<div class="cat-folder-body hidden border-t border-(--line-divider)">
+								<ul class="divide-y divide-(--line-divider)">
+									{cat.posts.map((post) => (
+										<li>
+											<a
+												href={getPostUrlBySlug(post.id)}
+												class="flex items-center gap-2 px-5 py-2 hover:bg-(--btn-regular-bg-hover) transition-colors text-sm"
+											>
+												<span class="grow truncate text-neutral-900 dark:text-neutral-100">
+													{post.data.title}
+												</span>
+												<span class="text-xs text-(--content-meta) shrink-0">
+													{post.data.published.toLocaleDateString("zh-CN")}
+												</span>
+											</a>
+										</li>
+									))}
+								</ul>
+							</div>
+						</div>
+					))
+				}
+			</div>
+			{
+				categories.length === 0 && (
+					<div class="text-center py-16 text-(--content-meta)">
+						<Icon
+							name="material-symbols:folder-off"
+							class="text-5xl mx-auto mb-3 opacity-50"
+						/>
+						<p>暂无分类</p>
+					</div>
+				)
+			}
+		</div>
+
+		<!-- 数据图视图 -->
+		<div class="cat-panel hidden" data-panel="chart">
+			<div class="card-base px-8 py-6">
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">分类文章数</h2>
+					<span class="text-sm text-(--content-meta)">共 {totalPosts} 篇 / {categories.length} 个分类</span>
+				</div>
+				<div class="space-y-3">
+					{
+						categories.map((cat) => {
+							const pct = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
+							return (
+								<div class="flex items-center gap-3">
+									<div class="w-32 shrink-0 text-sm text-neutral-900 dark:text-neutral-100 truncate" title={cat.name}>
+										{cat.name}
+									</div>
+									<div class="grow bg-(--btn-regular-bg) rounded-full h-5 overflow-hidden">
+										<div
+											class="h-full bg-(--primary) rounded-full transition-all flex items-center justify-end pr-2"
+											style={`width: ${Math.max(pct, 8)}%`}
+										>
+											<span class="text-xs text-white dark:text-black/70 font-bold">
+												{cat.count}
+											</span>
+										</div>
+									</div>
+								</div>
+							);
+						})
+					}
+				</div>
+			</div>
+		</div>
+	</category-page>
 </MainGridLayout>
+
+<style>
+	.cat-tab[aria-selected="true"] {
+		background-color: var(--primary);
+		color: white;
+	}
+	:global(.dark) .cat-tab[aria-selected="true"] {
+		color: rgba(0, 0, 0, 0.7);
+	}
+	.cat-folder[data-open="true"] .cat-folder-arrow {
+		transform: rotate(180deg);
+	}
+</style>
+
+<script>
+	class CategoryPage extends HTMLElement {
+		connectedCallback() {
+			// tab 切换
+			const tabs = this.querySelectorAll<HTMLButtonElement>(".cat-tab");
+			const panels = this.querySelectorAll<HTMLElement>(".cat-panel");
+			tabs.forEach((tab) => {
+				tab.addEventListener("click", () => {
+					const target = tab.dataset.tab;
+					tabs.forEach((t) =>
+						t.setAttribute(
+							"aria-selected",
+							t === tab ? "true" : "false",
+						),
+					);
+					panels.forEach((p) => {
+						p.classList.toggle("hidden", p.dataset.panel !== target);
+					});
+				});
+			});
+
+			// 文件夹展开/折叠
+			this.querySelectorAll<HTMLElement>(".cat-folder").forEach((folder) => {
+				const toggle = folder.querySelector<HTMLButtonElement>(".cat-folder-toggle");
+				const body = folder.querySelector<HTMLElement>(".cat-folder-body");
+				if (!toggle || !body) return;
+				toggle.addEventListener("click", () => {
+					const isOpen = folder.dataset.open === "true";
+					folder.dataset.open = isOpen ? "false" : "true";
+					toggle.setAttribute("aria-expanded", isOpen ? "false" : "true");
+					body.classList.toggle("hidden", isOpen);
+				});
+			});
+		}
+	}
+
+	if (!customElements.get("category-page")) {
+		customElements.define("category-page", CategoryPage);
+	}
+</script>

@@ -1,4 +1,5 @@
 ---
+import { execSync } from "node:child_process";
 import { getEntry, render } from "astro:content";
 import Markdown from "@components/common/Markdown.astro";
 import { Icon } from "astro-icon/components";
@@ -6,61 +7,135 @@ import CmsEditButton from "@/components/misc/CmsEditButton.astro";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import { url } from "@/utils/url-utils";
 
-// 时间轴页（fqzlr 风格）：TIMELINE 页眉 + 更新日志内容
-const entry = await getEntry("spec", "changelog");
+// 时间线页（fqzlr 风格）：
+//   面包屑 + TIMELINE 标签 + "更新日志"标题 + "时间线"按钮
+//   + "博客开发日志 · 共 N 次提交"
+//   + 按月份分组，每条：日期 + commit message + commit hash 链接
 
-if (!entry) {
-	throw new Error("Page content not found: spec/changelog");
+// 从 git log 读取提交记录（构建时执行）
+type Commit = { date: string; hash: string; message: string };
+let commits: Commit[] = [];
+try {
+	const raw = execSync(
+		'git log --pretty=format:"%ad|%h|%s" --date=short -n 200',
+		{ encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] },
+	);
+	commits = raw
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => {
+			const [date, hash, ...rest] = line.split("|");
+			return { date, hash, message: rest.join("|") };
+		});
+} catch (e) {
+	// git log 失败时（无 git 环境），回退到空数组
+	commits = [];
 }
 
-const { Content } = await render(entry);
+// 同时获取 spec/changelog 作为兜底内容
+const entry = await getEntry("spec", "changelog");
+const hasChangelog = !!entry;
+const { Content } = hasChangelog ? await render(entry!) : ({} as any);
+
+// 仓库 URL（用于 commit 链接）
+const repoUrl = "https://github.com/wwzhf/wwzhf.github.io";
+
+// 按月份分组
+const byMonth = new Map<string, Commit[]>();
+for (const c of commits) {
+	const [y, m] = c.date.split("-");
+	const key = `${y} 年 ${m} 月`;
+	if (!byMonth.has(key)) byMonth.set(key, []);
+	byMonth.get(key)!.push(c);
+}
+const monthGroups = Array.from(byMonth.entries()).sort((a, b) =>
+	a[0] < b[0] ? 1 : -1,
+);
 ---
 
 <MainGridLayout title="更新日志" description="更新日志时间线">
-	<div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
-		<div class="card-base z-10 px-4 sm:px-6 md:px-9 py-4 sm:py-6 relative w-full">
-			<!-- 面包屑 -->
+	<timeline-page>
+		<!-- 页眉：面包屑 + TIMELINE + 标题 + 时间线/图形化按钮 -->
+		<div class="card-base px-8 py-6 mb-4">
 			<nav
 				aria-label="Breadcrumb"
 				class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
 			>
-				<a href={url("/")} class="hover:text-(--primary) transition-colors">
-					首页
-				</a>
-				<Icon
-					name="material-symbols:chevron-right-rounded"
-					class="text-[1rem]"
-				/>
+				<a href={url("/")} class="hover:text-(--primary) transition-colors">首页</a>
+				<Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
 				<span class="text-(--primary)">更新日志</span>
 			</nav>
-
-			<!-- TIMELINE 页眉 -->
-			<div class="mb-4">
-				<div class="text-xs tracking-[0.2em] text-(--content-meta) mb-1">
-					TIMELINE
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<div class="text-xs tracking-[0.2em] text-(--primary) mb-1">TIMELINE</div>
+					<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">更新日志</h1>
 				</div>
-				<div class="flex items-center justify-between">
-					<h1
-						class="text-2xl font-bold text-neutral-900 dark:text-neutral-100"
-					>
-						更新日志
-					</h1>
-					<span
-						class="btn-regular rounded-lg h-9 px-3 gap-1.5 text-sm font-bold flex items-center"
-					>
-						<Icon
-							name="material-symbols:timeline-rounded"
-							class="text-[1.15rem] text-(--primary)"
-						/>
-						时间线
-					</span>
-				</div>
+				<button
+					class="btn-regular rounded-lg h-9 px-3 gap-1.5 text-sm font-bold flex items-center"
+					aria-label="当前：时间线，点击切换"
+				>
+					<Icon name="material-symbols:timeline-rounded" class="text-[1.15rem] text-(--primary)" />
+					时间线
+				</button>
 			</div>
-
-			<Markdown class="mt-2">
-				<Content />
-			</Markdown>
 		</div>
-	</div>
+
+		{
+			commits.length > 0 ? (
+				<>
+					<p class="text-sm text-(--content-meta) mb-4 px-1">
+						博客开发日志 · 共 {commits.length} 次提交
+					</p>
+					<div class="space-y-6">
+						{monthGroups.map(([month, items]) => (
+							<div class="card-base px-6 py-5">
+								<div class="flex items-center justify-between mb-3">
+									<h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+										{month}
+									</h2>
+									<span class="text-sm text-(--content-meta)">{items.length} 条</span>
+								</div>
+								<ul class="space-y-2 list-none pl-0">
+									{items.map((c) => (
+										<li class="flex items-start gap-3 py-1.5">
+											<span class="h-2 w-2 rounded-full bg-(--primary) mt-1.5 shrink-0" />
+											<span class="text-xs text-(--content-meta) font-mono w-20 shrink-0 mt-0.5">
+												{c.date}
+											</span>
+											<span class="grow text-sm text-neutral-900 dark:text-neutral-100">
+												{c.message}
+											</span>
+											<a
+												href={`${repoUrl}/commit/${c.hash}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="text-xs text-(--content-meta) hover:text-(--primary) font-mono shrink-0"
+											>
+												{c.hash}
+											</a>
+										</li>
+									))}
+								</ul>
+							</div>
+						))}
+					</div>
+				</>
+			) : hasChangelog ? (
+				<div class="card-base px-6 py-5">
+					<Markdown>
+						<Content />
+					</Markdown>
+				</div>
+			) : (
+				<div class="card-base px-6 py-5 text-center text-(--content-meta)">
+					<Icon
+						name="material-symbols:history-toggle-off-rounded"
+						class="text-5xl mx-auto mb-3 opacity-50"
+					/>
+					<p>暂无更新记录</p>
+				</div>
+			)
+		}
+	</timeline-page>
 	<CmsEditButton collection="pages" entry="changelog" />
 </MainGridLayout>

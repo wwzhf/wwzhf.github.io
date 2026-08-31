@@ -1,12 +1,153 @@
 ---
-import Calendar from "@/components/widget/Calendar.astro";
+import { Icon } from "astro-icon/components";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { url } from "@/utils/url-utils";
+
+// 日历页（fqzlr 风格）：
+//   面包屑 + CALENDAR 小标题 + "日历"大标题
+//   + "近期节日" 卡片网格（名称 + 倒计时：N 天 X 小时 Y 分）
+//   + "近期生日"（占位）
+//   + 公历节日表（按日期升序）
+
+// 公历节日表（按月-日）
+const festivals: { name: string; m: number; d: number; emoji?: string }[] = [
+	{ name: "元旦", m: 1, d: 1, emoji: "🎉" },
+	{ name: "情人节", m: 2, d: 14, emoji: "💝" },
+	{ name: "妇女节", m: 3, d: 8, emoji: "🌷" },
+	{ name: "植树节", m: 3, d: 12, emoji: "🌳" },
+	{ name: "愚人节", m: 4, d: 1, emoji: "🃏" },
+	{ name: "劳动节", m: 5, d: 1, emoji: "💪" },
+	{ name: "青年节", m: 5, d: 4, emoji: "🌟" },
+	{ name: "儿童节", m: 6, d: 1, emoji: "🎈" },
+	{ name: "教师节", m: 9, d: 10, emoji: "📚" },
+	{ name: "国庆节", m: 10, d: 1, emoji: "🇨🇳" },
+	{ name: "万圣节", m: 10, d: 31, emoji: "🎃" },
+	{ name: "光棍节", m: 11, d: 11, emoji: "🛒" },
+	{ name: "圣诞节", m: 12, d: 25, emoji: "🎄" },
+	{ name: "跨年夜", m: 12, d: 31, emoji: "🎆" },
+];
 ---
 
-<MainGridLayout title="日历" description="日历">
-    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
-        <div class="card-base z-10 px-6 py-6 relative w-full">
-            <Calendar />
-        </div>
-    </div>
+<MainGridLayout title="日历" description="近期节日、生日与倒计时">
+	<calendar-page>
+		<!-- 页眉 -->
+		<div class="card-base px-8 py-6 mb-4">
+			<nav
+				aria-label="Breadcrumb"
+				class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+			>
+				<a href={url("/")} class="hover:text-(--primary) transition-colors">首页</a>
+				<Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
+				<span class="text-(--primary)">日历</span>
+			</nav>
+			<div class="text-xs tracking-[0.2em] text-(--primary) mb-1">CALENDAR</div>
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">日历</h1>
+		</div>
+
+		<!-- 近期节日 -->
+		<section class="mb-6">
+			<div class="flex items-center gap-2 mb-3 px-1">
+				<span class="h-2 w-2 rounded-full bg-(--primary)"></span>
+				<h2 class="text-base font-bold text-neutral-900 dark:text-neutral-100">近期节日</h2>
+			</div>
+			<div
+				id="festivals"
+				class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+			>
+				{
+					festivals.map((f) => (
+						<div
+							class="card-base p-5 festival-card"
+							data-month={f.m}
+							data-day={f.d}
+						>
+							<div class="flex items-center gap-2 text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">
+								{f.emoji && <span>{f.emoji}</span>}
+								<span>{f.name}</span>
+							</div>
+							<div class="text-xs text-(--content-meta)">
+								距离 {f.name} 还有：<span data-countdown class="font-mono text-(--primary) font-bold"></span>
+							</div>
+						</div>
+					))
+				}
+			</div>
+		</section>
+
+		<!-- 近期生日 -->
+		<section class="mb-6">
+			<div class="flex items-center gap-2 mb-3 px-1">
+				<span class="h-2 w-2 rounded-full bg-(--primary)"></span>
+				<h2 class="text-base font-bold text-neutral-900 dark:text-neutral-100">近期生日</h2>
+			</div>
+			<div class="card-base p-5 text-(--content-meta)">
+				<div class="flex items-center gap-2">
+					<Icon name="material-symbols:cake-rounded" class="text-2xl opacity-50" />
+					<span>暂无即将到来的生日</span>
+				</div>
+				<p class="text-xs mt-2">在 Sveltia CMS 后台添加生日提醒后会显示在这里。</p>
+			</div>
+		</section>
+
+		<!-- 节日速览 -->
+		<section>
+			<div class="flex items-center gap-2 mb-3 px-1">
+				<span class="h-2 w-2 rounded-full bg-(--primary)"></span>
+				<h2 class="text-base font-bold text-neutral-900 dark:text-neutral-100">节日速览</h2>
+			</div>
+			<div class="card-base p-5">
+				<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm">
+					{
+						festivals.map((f) => (
+							<div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-(--btn-regular-bg-hover) transition-colors">
+								<span class="text-base">{f.emoji}</span>
+								<span class="grow text-neutral-900 dark:text-neutral-100">{f.name}</span>
+								<span class="text-xs text-(--content-meta) font-mono shrink-0">
+									{f.m.toString().padStart(2, "0")}-{f.d.toString().padStart(2, "0")}
+								</span>
+							</div>
+						))
+					}
+				</div>
+			</div>
+		</section>
+	</calendar-page>
 </MainGridLayout>
+
+<script>
+	// 计算距离下一个节日的天/时/分。节日过期则跳到下一年。
+	function nextOccurrence(m: number, d: number) {
+		const now = new Date();
+		const year = now.getFullYear();
+		let target = new Date(year, m - 1, d, 0, 0, 0);
+		if (target.getTime() < now.getTime()) {
+			target = new Date(year + 1, m - 1, d, 0, 0, 0);
+		}
+		return target;
+	}
+
+	function fmtCountdown(target: Date) {
+		const now = new Date();
+		let diff = target.getTime() - now.getTime();
+		if (diff < 0) diff = 0;
+		const days = Math.floor(diff / 86400000);
+		const hours = Math.floor((diff % 86400000) / 3600000);
+		const minutes = Math.floor((diff % 3600000) / 60000);
+		return `${days}天 ${hours.toString().padStart(2, "0")}小时 ${minutes.toString().padStart(2, "0")}分`;
+	}
+
+	function updateAll() {
+		document.querySelectorAll<HTMLElement>(".festival-card").forEach((card) => {
+			const m = Number(card.dataset.month);
+			const d = Number(card.dataset.day);
+			const target = nextOccurrence(m, d);
+			const el = card.querySelector("[data-countdown]");
+			if (el) el.textContent = fmtCountdown(target);
+		});
+	}
+
+	document.addEventListener("astro:page-load", updateAll);
+	updateAll();
+	// 每分钟刷新一次
+	setInterval(updateAll, 60000);
+</script>

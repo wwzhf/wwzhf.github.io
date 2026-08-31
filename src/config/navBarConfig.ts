@@ -54,6 +54,10 @@ const links: NavBarLink[] = [
 				url: "/moments/",
 			},
 			{
+				name: "朋友圈",
+				url: "/pengyou/",
+			},
+			{
 				name: "相册",
 				url: "/gallery/",
 				pageKey: "gallery",

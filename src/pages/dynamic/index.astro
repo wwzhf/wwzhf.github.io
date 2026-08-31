@@ -12,6 +12,8 @@ import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/dynamic.css";
 import { url } from "@/utils/url-utils";
 
+// 动态页（fqzlr 风格）：MomentsHeader（面包屑+MOMENTS+订阅+Banner） + 筛选条（搜索+年份） + DynamicFeed
+
 if (!siteConfig.pages.dynamic) {
 	return Astro.redirect("/404/");
 }
@@ -35,59 +37,41 @@ const momentsCount = (await getCollection("dynamic")).length;
 <MainGridLayout title={title} description={description}>
 	<section class="dynamic-page" aria-labelledby="dynamic-page-title">
 		<MomentsHeader title={title} count={momentsCount} />
-		<div>
-			<header class="dynamic-page-header card-base">
-				<div class="dynamic-page-heading">
-					<div class="dynamic-page-icon" aria-hidden="true">
-						<Icon name="material-symbols:forum-rounded" />
-					</div>
-					<div>
-						<h2 id="dynamic-page-title">{title}</h2>
-						{description && <p>{description}</p>}
-					</div>
-				</div>
-				<div
-					class="dynamic-count"
-					aria-label={i18n(I18nKey.dynamic)}
-				>
-					<Icon name="material-symbols:dynamic-feed-rounded" />
-					<strong data-dynamic-page-count>0</strong>
-					<span>{i18n(I18nKey.dynamic)}</span>
-				</div>
-				<div class="dynamic-filter">
-					<label class="dynamic-search">
-						<Icon name="material-symbols:search-rounded" />
-						<input
-							type="search"
-							data-dynamic-search
-							placeholder={i18n(I18nKey.dynamicSearch)}
-						/>
-					</label>
-					<label class="dynamic-year-select">
-						<Icon name="material-symbols:calendar-month-rounded" />
-						<select data-year-select aria-label={i18n(I18nKey.year)}>
-							<option value="all">{i18n(I18nKey.dynamicAllYears)}</option>
-						</select>
-						<Icon name="material-symbols:arrow-drop-down-rounded" />
-					</label>
-				</div>
-			</header>
 
-			<DynamicFeed
-				client:load
-				source={dataUrl}
-				{itemsPerPage}
-				showComments={showInlineComments}
-				emptyText={i18n(I18nKey.dynamicEmpty)}
-				noResultsText={i18n(I18nKey.dynamicNoResults)}
-				loadingText={i18n(I18nKey.dynamicLoading)}
-				allYearsText={i18n(I18nKey.dynamicAllYears)}
-				timezone={siteConfig.timezone || "UTC"}
-				{memos}
-			/>
+		<!-- 筛选条：搜索 + 年份 -->
+		<header class="dynamic-filter card-base">
+			<label class="dynamic-search">
+				<Icon name="material-symbols:search-rounded" />
+				<input
+					type="search"
+					data-dynamic-search
+					placeholder={i18n(I18nKey.dynamicSearch)}
+					aria-label="搜索动态"
+				/>
+			</label>
+			<label class="dynamic-year-select">
+				<Icon name="material-symbols:calendar-month-rounded" />
+				<select data-year-select aria-label={i18n(I18nKey.year)}>
+					<option value="all">{i18n(I18nKey.dynamicAllYears)}</option>
+				</select>
+				<Icon name="material-symbols:arrow-drop-down-rounded" />
+			</label>
+		</header>
 
-			<DynamicItemTemplate />
-		</div>
+		<DynamicFeed
+			client:load
+			source={dataUrl}
+			{itemsPerPage}
+			showComments={showInlineComments}
+			emptyText={i18n(I18nKey.dynamicEmpty)}
+			noResultsText={i18n(I18nKey.dynamicNoResults)}
+			loadingText={i18n(I18nKey.dynamicLoading)}
+			allYearsText={i18n(I18nKey.dynamicAllYears)}
+			timezone={siteConfig.timezone || "UTC"}
+			{memos}
+		/>
+
+		<DynamicItemTemplate />
 	</section>
 	<CmsEditButton collection="dynamic" />
 </MainGridLayout>
