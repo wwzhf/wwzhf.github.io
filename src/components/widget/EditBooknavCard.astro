@@ -1,13 +1,12 @@
 ---
 import { Icon } from "astro-icon/components";
-import { url } from "@/utils/url-utils";
 
 // 侧边栏「编辑页面导航」卡（仅 /projects/ 网站导航页显示）
-// 点击跳转到页内 #edit-nav 锚点，打开可视化增删管理面板（EditNavManager）
+// 点击派发 fqzlr:edit-nav 事件 → EditNavManager 进入内联编辑模式
+// （不用 hash 锚点链接：避免被 swup 拦截导致页面回顶/编辑不触发）
 if (Astro.url.pathname !== "/projects/") {
 	return null;
 }
-const href = `${url("/projects/")}#edit-nav`;
 ---
 
 <div class:list={["card-base", "p-4", Astro.props.class]} style={Astro.props.style}>
@@ -19,7 +18,8 @@ const href = `${url("/projects/")}#edit-nav`;
 	</div>
 	<div class="flex flex-col gap-2">
 		<a
-			href={href}
+			href="#edit-nav"
+			id="edit-booknav-trigger"
 			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
 		>
 			<Icon name="material-symbols:bookmarks-rounded" class="text-[1.35rem]" />
@@ -27,3 +27,17 @@ const href = `${url("/projects/")}#edit-nav`;
 		</a>
 	</div>
 </div>
+
+<script>
+	// 点击「编辑页面导航」：阻止默认锚点跳转（避免 swup 拦截回顶），派发事件给 EditNavManager
+	// 防重：侧边栏 static 容器随 swup 切页重载，模块脚本会重复执行
+	if (!window.__editBooknavListener) {
+		window.__editBooknavListener = true;
+		document.addEventListener("click", (e) => {
+			const btn = (e.target as Element | null)?.closest?.("#edit-booknav-trigger");
+			if (!btn) return;
+			e.preventDefault();
+			document.dispatchEvent(new CustomEvent("fqzlr:edit-nav", { bubbles: true }));
+		});
+	}
+</script>

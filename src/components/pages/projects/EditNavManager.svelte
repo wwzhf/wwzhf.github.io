@@ -59,6 +59,12 @@
 		error = "";
 		okMsg = "";
 		hideStatic();
+		// 打开后平滑滚动到编辑工具栏（避免用户停留在页面底部看不到编辑列表）
+		requestAnimationFrame(() => {
+			document
+				.querySelector(".en-toolbar")
+				?.scrollIntoView({ behavior: "smooth", block: "start" });
+		});
 	}
 
 	function exitEdit(): void {
@@ -76,7 +82,12 @@
 		if (typeof window === "undefined") return;
 		checkHash();
 		window.addEventListener("hashchange", checkHash);
-		return () => window.removeEventListener("hashchange", checkHash);
+		// 侧边栏「编辑页面导航」按钮派发的事件（不走 hash 导航，避免 swup 拦截回顶）
+		window.addEventListener("fqzlr:edit-nav", startEdit);
+		return () => {
+			window.removeEventListener("hashchange", checkHash);
+			window.removeEventListener("fqzlr:edit-nav", startEdit);
+		};
 	});
 
 	// ── 分组操作 ──
