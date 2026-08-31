@@ -81,12 +81,24 @@
 	$effect(() => {
 		if (typeof window === "undefined") return;
 		checkHash();
-		window.addEventListener("hashchange", checkHash);
-		// 侧边栏「编辑页面导航」按钮派发的事件（不走 hash 导航，避免 swup 拦截回顶）
-		window.addEventListener("fqzlr:edit-nav", startEdit);
+		// 直接捕获侧边栏「编辑页面导航」按钮点击（capture 阶段，先于 swup 拦截）：
+		// 不依赖 EditBooknavCard 的脚本/自定义事件链路，即使按钮是旧版 <a> 也能生效
+		const onDocClick = (e: MouseEvent) => {
+			const btn = (e.target as Element | null)?.closest?.("#edit-booknav-trigger");
+			if (!btn) return;
+			e.preventDefault();
+			e.stopPropagation();
+			startEdit();
+		};
+		const onHash = () => checkHash();
+		const onEvent = () => startEdit();
+		document.addEventListener("click", onDocClick, true);
+		window.addEventListener("hashchange", onHash);
+		window.addEventListener("fqzlr:edit-nav", onEvent);
 		return () => {
-			window.removeEventListener("hashchange", checkHash);
-			window.removeEventListener("fqzlr:edit-nav", startEdit);
+			document.removeEventListener("click", onDocClick, true);
+			window.removeEventListener("hashchange", onHash);
+			window.removeEventListener("fqzlr:edit-nav", onEvent);
 		};
 	});
 
