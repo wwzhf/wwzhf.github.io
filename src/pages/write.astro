@@ -1,0 +1,38 @@
+---
+import { Icon } from "astro-icon/components";
+import MarkdownEditor from "@/components/pages/write/MarkdownEditor.svelte";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { url } from "@/utils/url-utils";
+
+// /write/ 在线 Markdown 编辑器（复刻 fqzlr /write/）
+// 功能：导入 MD、格式工具栏、字数统计、草稿（localStorage）、发布（GitHub Contents API + PAT）
+// 模式：/write/（新建）/ /write/?mode=edit&collection=posts&entry=<slug>（编辑现有文件）
+---
+
+<MainGridLayout title="写文章" description="支持 Markdown 语法，编辑后通过 GitHub API 提交到仓库">
+	<write-page>
+		<div class="card-base px-4 sm:px-6 md:px-9 py-4 sm:py-6 relative w-full">
+			<!-- 页眉：面包屑 + WRITE + 写文章 -->
+			<nav
+				aria-label="Breadcrumb"
+				class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+			>
+				<a href={url("/")} class="hover:text-(--primary) transition-colors">首页</a>
+				<Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
+				<span class="text-(--primary)">写文章</span>
+			</nav>
+			<div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+				<div>
+					<div class="text-xs tracking-[0.2em] text-(--primary) mb-1">WRITE</div>
+					<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">写文章</h1>
+				</div>
+			</div>
+			<p class="text-sm text-(--content-meta) mb-4">
+				支持 Markdown 语法，编辑后通过 GitHub API 提交到仓库。
+			</p>
+
+			<!-- 编辑器（Svelte 组件，客户端交互） -->
+			<MarkdownEditor client:load />
+		</div>
+	</write-page>
+</MainGridLayout>

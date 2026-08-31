@@ -32,7 +32,7 @@ const links: NavBarLink[] = [
 			},
 			{
 				name: "写文章",
-				url: "/writing/",
+				url: "/write/",
 			},
 		],
 	},

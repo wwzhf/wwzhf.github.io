@@ -2,36 +2,63 @@
 import { Icon } from "astro-icon/components";
 import { url } from "@/utils/url-utils";
 
-// 侧边栏「编辑」卡（复刻 fqzlr 左侧编辑卡）
-// 卡片内提供快捷入口：跳转内容后台 /admin/ 编辑当前栏目
-// 默认打开 posts 栏目列表，页面可在部署后按需调整
-interface Props {
-	class?: string;
-	style?: string;
+// 侧边栏「写文章」卡（复刻 fqzlr 左侧编辑卡的写新文章/编辑本页两个入口）
+// 根据当前路由自动判断 collection/entry：
+//   /posts/<slug>     → collection=posts,   entry=<slug>
+//   /about/ /guestbook/ /changelog/ /notes/ /plans/ /footprint/ → collection=pages
+//   /dynamic/         → collection=dynamic
+//   其他              → 仅"写新文章"按钮
+const path = Astro.url.pathname;
+type Collection = "posts" | "pages" | "dynamic";
+let collection: Collection = "posts";
+let entry: string | undefined;
+
+if (path.startsWith("/posts/")) {
+	collection = "posts";
+	entry = path.replace(/^\/posts\//, "").replace(/\/$/, "") || undefined;
+} else if (path === "/about/") {
+	collection = "pages";
+	entry = "about";
+} else if (path === "/guestbook/") {
+	collection = "pages";
+	entry = "guestbook";
+} else if (path === "/changelog/" || path === "/timeline/") {
+	collection = "pages";
+	entry = "changelog";
+} else if (path === "/notes/") {
+	collection = "pages";
+	entry = "notes";
+} else if (path === "/plans/") {
+	collection = "pages";
+	entry = "plans";
+} else if (path === "/footprint/") {
+	collection = "pages";
+	entry = "footprint";
+} else if (path.startsWith("/dynamic/")) {
+	collection = "dynamic";
 }
-const { style } = Astro.props;
-const className = Astro.props.class;
+
+const buildHref = (mode: "new" | "edit") => {
+	const params = new URLSearchParams();
+	params.set("mode", mode);
+	if (mode === "edit" && entry) {
+		params.set("collection", collection);
+		params.set("entry", entry);
+	}
+	return `${url("/write/")}?${params.toString()}`;
+};
 ---
 
-<div class:list={["card-base", "p-4", className]} style={style}>
+<div class:list={["card-base", "p-4", Astro.props.class]} style={Astro.props.style}>
 	<div
 		class="flex items-center gap-2 text-base font-bold mb-3 dark:text-neutral-50 transition"
 	>
 		<Icon name="material-symbols:edit-rounded" class="text-[1.2rem] text-(--primary)" />
-		<span>编辑</span>
+		<span>写文章</span>
 	</div>
 	<div class="flex flex-col gap-2">
 		<a
-			href={url("/admin/#/collections/posts")}
-			target="_blank"
-			rel="noopener"
-			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
-		>
-			<Icon name="material-symbols:edit-note-rounded" class="text-[1.35rem]" />
-			编辑本页
-		</a>
-		<a
-			href={url("/admin/#/collections/posts")}
+			href={buildHref("new")}
 			target="_blank"
 			rel="noopener"
 			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
@@ -39,5 +66,18 @@ const className = Astro.props.class;
 			<Icon name="material-symbols:note-add-rounded" class="text-[1.35rem]" />
 			写新文章
 		</a>
+		{
+			entry && (
+				<a
+					href={buildHref("edit")}
+					target="_blank"
+					rel="noopener"
+					class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+				>
+					<Icon name="material-symbols:edit-note-rounded" class="text-[1.35rem]" />
+					编辑本页
+				</a>
+			)
+		}
 	</div>
 </div>
