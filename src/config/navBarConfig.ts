@@ -83,11 +83,6 @@ const links: NavBarLink[] = [
 				pageKey: "bangumi",
 			},
 			{
-				name: "追番",
-				url: "/bilibili/",
-				pageKey: "bilibili",
-			},
-			{
 				name: "日历",
 				url: "/calendar/",
 			},
