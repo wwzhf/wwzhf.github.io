@@ -1,83 +1,343 @@
 ---
+import { Icon } from "astro-icon/components";
 import type { MarkdownHeading } from "astro";
-import BackToComment from "./BackToComment.astro";
-import BackToHome from "./BackToHome.astro";
-import BackToTop from "./BackToTop.astro";
+import LightDarkSwitch from "@/components/controls/LightDarkSwitch.svelte";
 import FloatingTOC from "./FloatingTOC.astro";
+import { announcementConfig } from "@/config/announcementConfig";
+import { url } from "@/utils/url-utils";
 
+// fqzlr 风格浮动 Dock（替代原右下角堆叠控件）
+// 竖排圆形按钮：主题 / 留言 / 主题色 | 音乐 / 搜索 / 分类 / 公告 | 主页 / 文章 / 目录 | 展开
 interface Props {
 	headings?: MarkdownHeading[];
 	encrypted?: boolean;
 }
 
 const { headings, encrypted } = Astro.props;
+const isHomePage = Astro.url.pathname === "/";
+const isPostPage = Astro.url.pathname.includes("/posts/");
+const tocHeadings = headings ?? [];
 ---
 
-<div class="floating-controls-container">
-  <FloatingTOC headings={headings ?? []} encrypted={encrypted} />
-  <BackToComment />
-  <BackToHome />
-  <BackToTop />
+<div class="fqzlr-dock" id="fqzlr-dock" data-collapsed="false">
+	<div class="dock-panel">
+		<!-- 主组：主题 / 留言 / 主题色 -->
+		<div class="dock-item dock-item-switch">
+			<LightDarkSwitch client:load />
+		</div>
+		<a class="dock-item dock-btn" href={url("/guestbook/")} title="留言板" aria-label="留言板">
+			<Icon name="material-symbols:chat-bubble-rounded" class="dock-icon" />
+			<span class="dock-label">留言</span>
+		</a>
+		<button class="dock-item dock-btn" id="dock-settings-btn" title="主题色" aria-label="主题色">
+			<Icon name="material-symbols:palette-rounded" class="dock-icon" />
+			<span class="dock-label">主题色</span>
+		</button>
+
+		<div class="dock-divider"></div>
+
+		<!-- 功能组：音乐 / 搜索 / 分类 / 公告 -->
+		<a class="dock-item dock-btn" href={url("/music/")} title="音乐" aria-label="音乐">
+			<Icon name="material-symbols:music-note-rounded" class="dock-icon" />
+			<span class="dock-label">音乐</span>
+		</a>
+		<button class="dock-item dock-btn" id="dock-search-btn" title="搜索" aria-label="搜索">
+			<Icon name="material-symbols:search-rounded" class="dock-icon" />
+			<span class="dock-label">搜索</span>
+		</button>
+		<a class="dock-item dock-btn" href={url("/categories/")} title="分类" aria-label="分类">
+			<Icon name="material-symbols:category-rounded" class="dock-icon" />
+			<span class="dock-label">分类</span>
+		</a>
+		<button class="dock-item dock-btn" id="dock-announcement-btn" title="公告" aria-label="公告" aria-expanded="false">
+			<Icon name="material-symbols:campaign-rounded" class="dock-icon" />
+			<span class="dock-label">公告</span>
+		</button>
+
+		<div class="dock-divider"></div>
+
+		<!-- 页面组（非首页显示）：主页 / 文章 -->
+		{!isHomePage && (
+			<>
+				<a class="dock-item dock-btn" href={url("/")} title="主页" aria-label="主页">
+					<Icon name="material-symbols:home-rounded" class="dock-icon" />
+					<span class="dock-label">主页</span>
+				</a>
+				<a class="dock-item dock-btn" href={url("/posts/")} title="文章" aria-label="文章列表">
+					<Icon name="material-symbols:article-rounded" class="dock-icon" />
+					<span class="dock-label">文章</span>
+				</a>
+			</>
+		)}
+
+		<!-- 文章页目录（复用 FloatingTOC，按钮样式与 Dock 对齐） -->
+		{isPostPage && <FloatingTOC headings={tocHeadings} encrypted={encrypted} />}
+
+		<!-- 折叠开关 -->
+		<button class="dock-item dock-btn dock-collapse" id="dock-collapse-btn" title="展开/收起" aria-label="展开/收起">
+			<Icon name="material-symbols:keyboard-arrow-right-rounded" class="dock-icon" id="dock-collapse-icon" />
+			<span class="dock-label" id="dock-collapse-label">展开</span>
+		</button>
+	</div>
+
+	<!-- 公告弹层 -->
+	<div class="dock-popover float-panel-closed" id="dock-announcement-panel" aria-hidden="true" inert>
+		<div class="dock-popover-title">
+			<Icon name="material-symbols:campaign-rounded" class="text-[1.1rem]" />
+			<span>公告</span>
+		</div>
+		<div class="dock-popover-content">{announcementConfig.content}</div>
+		{announcementConfig.link?.enable && (
+			<a class="dock-popover-link" href={url(announcementConfig.link.url)} target={announcementConfig.link.external ? "_blank" : undefined} rel={announcementConfig.link.external ? "noopener" : undefined}>
+				{announcementConfig.link.text}
+			</a>
+		)}
+	</div>
 </div>
 
 <style>
-  .floating-controls-container {
-    position: fixed;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: flex-end; /* 右对齐 */
-    pointer-events: none; /* 容器不阻挡点击 */
-    
-    /* 默认桌面端位置 - 对应 BackToTop 的位置 */
-    right: 1rem;
-    bottom: 4rem;
-  }
+	.fqzlr-dock {
+		position: fixed;
+		right: 1rem;
+		bottom: 4.5rem;
+		z-index: 1000;
+		display: flex;
+		align-items: flex-end;
+		pointer-events: none; /* 容器不阻挡点击 */
+	}
 
-  /* 响应式调整 - 保持原有的位置逻辑 */
-  @media (max-width: 1024px) {
-    .floating-controls-container {
-      right: 1rem;
-      bottom: 4rem;
-    }
-  }
+	.dock-panel {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem;
+		border-radius: 999px;
+		background: var(--card-bg-transparent, rgba(255, 255, 255, 0.75));
+		border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		pointer-events: auto;
+	}
 
-  @media (max-width: 768px) {
-    .floating-controls-container {
-      right: 0.75rem;
-      bottom: 4rem;
-      gap: 0.5rem;
-    }
-  }
+	.dock-item {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.75rem;
+		height: 2.75rem;
+		border-radius: 999px;
+		transition: all 0.2s ease;
+		flex-shrink: 0;
+	}
 
-  @media (max-width: 480px) {
-    .floating-controls-container {
-      right: 0.5rem;
-      bottom: 4rem;
-    }
-  }
+	.dock-btn {
+		gap: 0;
+		flex-direction: column;
+		color: var(--text-color, #333);
+		background: transparent;
+		font-size: 0.65rem;
+		line-height: 1;
+	}
 
-  /* 高缩放比例适配 */
-  @media (min-resolution: 2dppx) {
-    .floating-controls-container {
-      right: max(0.5rem, 2rem - 2vw);
-      bottom: max(3rem, 4rem - 5vh);
-    }
-  }
-  
-  /* 横屏模式适配 */
-  @media (orientation: landscape) and (max-height: 500px) {
-    .floating-controls-container {
-      bottom: 4rem; 
-    }
-  }
+	.dock-btn:hover {
+		background: color-mix(in srgb, var(--primary, #10b981) 14%, transparent);
+		color: var(--primary, #10b981);
+		transform: translateY(-2px);
+	}
 
-  /* 极低分辨率适配 */
-  @media (max-width: 320px) {
-    .floating-controls-container {
-        right: 0.125rem;
-        bottom: 4rem;
-    }
-  }
+	.dock-btn:active {
+		transform: scale(0.92);
+	}
+
+	.dock-icon {
+		font-size: 1.35rem;
+		margin-bottom: 0.15rem;
+	}
+
+	/* 折叠态：只显示图标 */
+	.fqzlr-dock[data-collapsed="true"] .dock-label {
+		display: none;
+	}
+	.fqzlr-dock[data-collapsed="true"] .dock-btn {
+		font-size: 0;
+	}
+	.fqzlr-dock[data-collapsed="true"] .dock-icon {
+		margin-bottom: 0;
+	}
+
+	.dock-divider {
+		width: 1.5rem;
+		height: 1px;
+		background: var(--border-color, rgba(0, 0, 0, 0.12));
+		margin: 0.1rem 0;
+	}
+
+	/* LightDarkSwitch 圆钮适配 */
+	.dock-item-switch :global(#scheme-switch) {
+		width: 2.75rem;
+		height: 2.75rem;
+	}
+
+	/* 公告弹层 */
+	.dock-popover {
+		position: absolute;
+		right: calc(100% + 0.75rem);
+		bottom: 0;
+		width: 16rem;
+		padding: 0.9rem 1rem;
+		border-radius: 1rem;
+		background: var(--card-bg-transparent, rgba(255, 255, 255, 0.92));
+		border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		transition: all 0.25s ease;
+		opacity: 1;
+		transform: translateX(0);
+		pointer-events: auto;
+	}
+
+	.dock-popover.float-panel-closed {
+		opacity: 0;
+		transform: translateX(8px);
+		pointer-events: none;
+	}
+
+	.dock-popover-title {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-weight: 700;
+		margin-bottom: 0.5rem;
+		color: var(--primary, #10b981);
+	}
+
+	.dock-popover-content {
+		font-size: 0.875rem;
+		color: var(--text-color, #333);
+		margin-bottom: 0.5rem;
+		line-height: 1.6;
+	}
+
+	.dock-popover-link {
+		display: inline-block;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--primary, #10b981);
+	}
+
+	.dock-popover-link:hover {
+		text-decoration: underline;
+	}
+
+	/* 响应式：小屏 Dock 缩小 */
+	@media (max-width: 480px) {
+		.fqzlr-dock {
+			right: 0.6rem;
+			bottom: 4rem;
+		}
+		.dock-item,
+		.dock-item-switch :global(#scheme-switch) {
+			width: 2.5rem;
+			height: 2.5rem;
+		}
+		.dock-panel {
+			gap: 0.3rem;
+			padding: 0.4rem;
+		}
+	}
 </style>
+
+<script>
+	// fqzlr Dock 交互
+	function initDock() {
+		const dock = document.getElementById("fqzlr-dock");
+		if (!dock) return;
+
+		// 展开/折叠
+		const collapseBtn = document.getElementById("dock-collapse-btn");
+		const collapseIcon = document.getElementById("dock-collapse-icon");
+		const collapseLabel = document.getElementById("dock-collapse-label");
+		if (collapseBtn) {
+			collapseBtn.addEventListener("click", () => {
+				const collapsed = dock.getAttribute("data-collapsed") === "true";
+				dock.setAttribute("data-collapsed", String(!collapsed));
+				if (collapseIcon) {
+					collapseIcon.setAttribute("data-icon", "");
+					// 切换箭头方向：折叠时向左展开，展开时向右收起
+					collapseIcon.style.transform = collapsed ? "rotate(0deg)" : "rotate(180deg)";
+				}
+				if (collapseLabel) {
+					collapseLabel.textContent = collapsed ? "收起" : "展开";
+				}
+			});
+		}
+
+		// 主题色：切换设置面板
+		const settingsBtn = document.getElementById("dock-settings-btn");
+		if (settingsBtn) {
+			settingsBtn.addEventListener("click", () => {
+				const panel = document.getElementById("display-setting");
+				if (panel) panel.classList.toggle("float-panel-closed");
+				else {
+					// 面板不存在（设置被禁用）时直接跳转显示设置锚点
+					window.location.href = "/";
+				}
+			});
+		}
+
+		// 搜索：切换搜索面板
+		const searchBtn = document.getElementById("dock-search-btn");
+		if (searchBtn) {
+			searchBtn.addEventListener("click", () => {
+				const panel = document.getElementById("search-panel");
+				if (panel) {
+					panel.classList.toggle("float-panel-closed");
+					const input = document.getElementById("search-input-desktop");
+					if (!panel.classList.contains("float-panel-closed") && input) {
+						setTimeout(() => input.focus(), 50);
+					}
+				} else {
+					window.location.href = "/search/";
+				}
+			});
+		}
+
+		// 公告：切换公告弹层
+		const announcementBtn = document.getElementById("dock-announcement-btn");
+		const announcementPanel = document.getElementById("dock-announcement-panel");
+		if (announcementBtn && announcementPanel) {
+			announcementBtn.addEventListener("click", () => {
+				const isClosed = announcementPanel.classList.contains("float-panel-closed");
+				announcementPanel.classList.toggle("float-panel-closed");
+				announcementPanel.setAttribute("aria-hidden", String(isClosed));
+				announcementPanel.inert = !isClosed;
+				announcementBtn.setAttribute("aria-expanded", String(!isClosed));
+			});
+			// 点击弹层外部关闭
+			document.addEventListener("click", (e) => {
+				if (
+					!announcementPanel.classList.contains("float-panel-closed") &&
+					!(e.target as Node)?.isConnected
+				) return;
+				if (
+					!announcementPanel.classList.contains("float-panel-closed") &&
+					!announcementPanel.contains(e.target as Node) &&
+					!announcementBtn.contains(e.target as Node)
+				) {
+					announcementPanel.classList.add("float-panel-closed");
+					announcementPanel.setAttribute("aria-hidden", "true");
+					announcementPanel.inert = true;
+					announcementBtn.setAttribute("aria-expanded", "false");
+				}
+			});
+		}
+	}
+
+	// Swup/Astro 页面切换后重新初始化
+	initDock();
+	document.addEventListener("astro:page-load", initDock);
+	document.addEventListener("swup:contentReplaced", () => setTimeout(initDock, 100));
+</script>

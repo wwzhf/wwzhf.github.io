@@ -1,0 +1,43 @@
+---
+import { Icon } from "astro-icon/components";
+import { url } from "@/utils/url-utils";
+
+// 侧边栏「编辑」卡（复刻 fqzlr 左侧编辑卡）
+// 卡片内提供快捷入口：跳转内容后台 /admin/ 编辑当前栏目
+// 默认打开 posts 栏目列表，页面可在部署后按需调整
+interface Props {
+	class?: string;
+	style?: string;
+}
+const { style } = Astro.props;
+const className = Astro.props.class;
+---
+
+<div class:list={["card-base", "p-4", className]} style={style}>
+	<div
+		class="flex items-center gap-2 text-base font-bold mb-3 dark:text-neutral-50 transition"
+	>
+		<Icon name="material-symbols:edit-rounded" class="text-[1.2rem] text-(--primary)" />
+		<span>编辑</span>
+	</div>
+	<div class="flex flex-col gap-2">
+		<a
+			href={url("/admin/#/collections/posts")}
+			target="_blank"
+			rel="noopener"
+			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+		>
+			<Icon name="material-symbols:edit-note-rounded" class="text-[1.35rem]" />
+			编辑本页
+		</a>
+		<a
+			href={url("/admin/#/collections/posts")}
+			target="_blank"
+			rel="noopener"
+			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+		>
+			<Icon name="material-symbols:note-add-rounded" class="text-[1.35rem]" />
+			写新文章
+		</a>
+	</div>
+</div>
