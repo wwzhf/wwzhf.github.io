@@ -63,25 +63,6 @@ const links: NavBarLink[] = [
 			},
 		],
 	},
-	{
-		name: "关于",
-		url: "#",
-		children: [
-			{
-				name: "关于我",
-				url: "/about/",
-			},
-			// P3 新增页面：项目（/projects/）
-			// {
-			// 	name: "项目",
-			// 	url: "/projects/",
-			// },
-			{
-				name: "搜索",
-				url: "/search/",
-			},
-		],
-	},
 ];
 
 export const navBarConfig: NavBarConfig = {

@@ -220,6 +220,7 @@ const tocHeadings = headings ?? [];
 		}
 
 		// 搜索：切换搜索面板
+		// 搜索：打开搜索面板（面板缺失时不跳转——/search/ 页面已移除）
 		const searchBtn = document.getElementById("dock-search-btn");
 		if (searchBtn) {
 			searchBtn.addEventListener("click", () => {
@@ -230,8 +231,6 @@ const tocHeadings = headings ?? [];
 					if (!panel.classList.contains("float-panel-closed") && input) {
 						setTimeout(() => input.focus(), 50);
 					}
-				} else {
-					window.location.href = "/search/";
 				}
 			});
 		}
