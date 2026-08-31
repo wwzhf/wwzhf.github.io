@@ -38,7 +38,8 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 		},
 	],
 
-	// 右侧边栏组件配置列表（fqzlr 布局已移除右侧 widget 栏，全部禁用）
+	// 右侧边栏组件配置列表
+	// 文章详情页：只显示 sidebarToc 目录；其他页面：只显示 calendar 日历
 	rightComponents: [
 		{
 			type: "stats",
@@ -62,7 +63,8 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			enable: true,
 			showTitle: true,
 			position: "sticky",
-			showOnPostPage: true,
+			// 文章页（详情/列表）隐藏日历，其他页面（主页/归档/关于等）显示
+			showOnPostPage: false,
 			specificConfig: {
 				calendar: {
 					showHeatmap: true,
