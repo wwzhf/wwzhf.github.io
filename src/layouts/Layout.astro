@@ -425,13 +425,6 @@ const siteLogo = await getSiteLogo();
 
     <slot name="head" />
 
-    <link
-      rel="alternate"
-      type="application/rss+xml"
-      title={profileConfig.name}
-      href={`${Astro.site}rss.xml`}
-    />
-
     <!-- Font Setup (Astro Font API) -->
     <FontSetup />
   </head>
