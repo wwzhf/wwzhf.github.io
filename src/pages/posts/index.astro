@@ -1,473 +1,64 @@
 ---
+import PostPage from "@/components/layout/PostPage.astro";
+import Pagination from "@/components/common/Pagination.astro";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import "@/styles/markdown.css";
-import "@/styles/markdown-extend.styl";
+import { Icon } from "astro-icon/components";
+import { siteConfig } from "@/config";
+import { getSortedPosts } from "@/utils/content-utils";
+import { url } from "@/utils/url-utils";
 
-// 文章浏览器：左侧分类树 + 编辑入口，主区域阅读选中的文章，右侧目录
+// 文章列表页（fqzlr 风格）：面包屑页眉 + 文章卡片列表 + 分页
+const allPosts = await getSortedPosts();
+const perPage = siteConfig.pagination?.postsPerPage ?? 10;
+const lastPage = Math.max(1, Math.ceil(allPosts.length / perPage));
+const currentPage = Math.min(
+	Math.max(1, Number(Astro.url.searchParams.get("page")) || 1),
+	lastPage,
+);
+const start = (currentPage - 1) * perPage;
+const end = Math.min(start + perPage, allPosts.length);
+
+const page = {
+	data: allPosts.slice(start, end),
+	total: allPosts.length,
+	size: end - start,
+	currentPage,
+	lastPage,
+	start: start + 1,
+	end,
+	url: {
+		current: Astro.url.pathname,
+		first: "/posts/",
+		last: `/posts/?page=${lastPage}`,
+	},
+};
 ---
 
 <MainGridLayout title="文章列表" description="浏览全部文章">
-    <div id="posts-browser">
-        {/* 未选择文章时的提示卡片 */}
-        <div id="pb-default" class="card-base px-9 py-16 text-center">
-            <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100">全部文章</div>
-            <p class="mt-3 text-sm text-(--content-meta)">从左侧「全部文章」中选择一篇文章开始阅读</p>
-        </div>
-
-        {/* 选中的文章 */}
-        <article id="pb-article" class="card-base px-9 py-8 hidden">
-            <h1 id="pb-article-title" class="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2"></h1>
-            <div id="pb-article-meta" class="text-sm text-(--content-meta) mb-6"></div>
-            <div id="pb-article-content" class="prose dark:prose-invert prose-base max-w-none! custom-md"></div>
-        </article>
-    </div>
-</MainGridLayout>
-
-<script>
-	// ============================================================
-	// 文章浏览器逻辑：注入侧边栏卡片、分类树、目录、文章渲染
-	// ============================================================
-	type Post = {
-		id: string;
-		title: string;
-		category: string;
-		published: number;
-		pinned: boolean;
-		encrypted: boolean;
-		html: string;
-	};
-
-	const POSTS_URL = "/api/posts-data.json";
-	const fmtDate = (ts: number) => new Date(ts).toISOString().slice(0, 10);
-
-	let cache: Post[] | null = null;
-	let currentId: string | null = null;
-	let observer: IntersectionObserver | null = null;
-
-	async function loadPosts(): Promise<Post[]> {
-		if (!cache) {
-			const res = await fetch(POSTS_URL);
-			cache = (await res.json()) as Post[];
-		}
-		return cache!;
-	}
-
-	const isPostsPage = () =>
-		location.pathname.replace(/\/+$/, "") === "/posts";
-
-	// ── 卡片注入（幂等）─────────────────────────────
-	function ensureCards() {
-		const left = document.getElementById("left-sidebar");
-		const right = document.getElementById("right-sidebar");
-		if (!left || !right) return;
-
-		if (!document.getElementById("pb-tree-wrap")) {
-			left.insertAdjacentHTML(
-				"afterbegin",
-				`<div id="left-sidebar-sticky" class="flex flex-col w-full mt-0 gap-4 sticky top-0">
-					<div id="pb-tree-wrap" class="card-base p-4 mb-4">
-						<div class="text-base font-bold text-neutral-900 dark:text-neutral-100 px-1 pb-2">全部文章</div>
-						<div id="pb-tree" class="pb-tree"></div>
-					</div>
-					<div id="pb-edit-wrap" class="card-base p-4">
-						<div class="text-base font-bold text-neutral-900 dark:text-neutral-100 px-1 pb-2">编辑</div>
-						<div id="pb-edit-body" class="pb-edit"></div>
-					</div>
-				</div>`,
-			);
-		}
-		if (!document.getElementById("pb-toc-wrap")) {
-			right.insertAdjacentHTML(
-				"afterbegin",
-				`<div id="right-sidebar-sticky" class="flex flex-col w-full mt-0 gap-4 sticky top-0">
-					<div id="pb-toc-wrap" class="card-base p-4">
-						<div class="text-base font-bold text-neutral-900 dark:text-neutral-100 px-1 pb-2">目录</div>
-						<div id="pb-toc" class="pb-toc"><div class="pb-toc-empty">选择文章后显示目录</div></div>
-					</div>
-				</div>`,
-			);
-		}
-	}
-
-	// ── 分类树 ──────────────────────────────────
-	function renderTree(posts: Post[]) {
-		const tree = document.getElementById("pb-tree");
-		if (!tree) return;
-		const groups = new Map<string, Post[]>();
-		for (const p of posts) {
-			const key = p.category || "未分类";
-			if (!groups.has(key)) groups.set(key, []);
-			groups.get(key)!.push(p);
-		}
-		let html = "";
-		for (const [cat, items] of groups) {
-			const open = items.some((p) => p.id === currentId) ? "true" : localStorage.getItem(`pb-cat-${cat}`) ?? "true";
-			html += `<div class="pb-cat" data-cat="${cat}">
-				<button class="pb-cat-head" data-cat="${cat}" aria-expanded="${open}">
-					<svg class="pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-					<span class="pb-cat-name">${cat}</span>
-					<span class="pb-cat-count">${items.length}</span>
-					<svg class="pb-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-				</button>
-				<div class="pb-cat-list" data-open="${open}">
-					${items
-						.map(
-							(p) => `<a class="pb-post" data-id="${p.id}" href="/posts/${p.id}/">
-								<svg class="pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-								<span class="pb-post-title">${p.title}</span>
-								${p.pinned ? '<span class="pb-pin">置顶</span>' : ""}
-							</a>`,
-						)
-						.join("")}
-				</div>
-			</div>`;
-		}
-		tree.innerHTML = html;
-
-		tree.querySelectorAll(".pb-cat-head").forEach((btn) => {
-			btn.addEventListener("click", (e) => {
-				e.preventDefault();
-				const catRoot = btn.closest(".pb-cat")!;
-				const listEl = catRoot.querySelector(".pb-cat-list") as HTMLElement;
-				const next = listEl.dataset.open !== "true";
-				listEl.dataset.open = String(next);
-				btn.setAttribute("aria-expanded", String(next));
-				localStorage.setItem(`pb-cat-${(btn as HTMLElement).dataset.cat}`, String(next));
-			});
-		});
-		tree.querySelectorAll("a.pb-post").forEach((a) => {
-			a.addEventListener("click", (e) => {
-				e.preventDefault();
-				const id = (a as HTMLElement).dataset.id!;
-				selectPost(id);
-			});
-		});
-		highlightTree();
-	}
-
-	function highlightTree() {
-		document.querySelectorAll("#pb-tree a.pb-post").forEach((a) => {
-			a.classList.toggle("active", (a as HTMLElement).dataset.id === currentId);
-		});
-	}
-
-	// ── 编辑卡片 ────────────────────────────────
-	function renderEditCard() {
-		const body = document.getElementById("pb-edit-body");
-		if (!body) return;
-		const editHref = currentId
-			? `/admin/#/collections/posts/entries/${currentId}`
-			: "#";
-		body.innerHTML = `
-			<a class="pb-edit-item" href="/admin/#/collections/posts" target="_blank" rel="noopener">
-				<svg class="pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-				<span>写新文章</span>
-				<span class="pb-new">New</span>
+	<!-- 面包屑页眉（fqzlr 风格） -->
+	<div class="card-base px-8 py-6 mb-4">
+		<nav
+			aria-label="Breadcrumb"
+			class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+		>
+			<a href={url("/")} class="hover:text-(--primary) transition-colors">
+				首页
 			</a>
-			<a class="pb-edit-item ${currentId ? "" : "disabled"}" id="pb-edit-current" href="${editHref}" target="_blank" rel="noopener">
-				<svg class="pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-				<span>编辑当前文章</span>
-				<svg class="pb-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-			</a>`;
-	}
+			<Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
+			<span class="text-(--primary)">文章列表</span>
+		</nav>
+		<div class="text-xs tracking-[0.2em] text-(--content-meta) mb-1">
+			ARTICLE INDEX
+		</div>
+		<div class="flex items-center justify-between">
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+				文章列表
+			</h1>
+			<span class="text-sm text-(--content-meta)">共 {allPosts.length} 篇文章</span>
+		</div>
+	</div>
 
-	// ── 目录 ────────────────────────────────────
-	function renderToc() {
-		const toc = document.getElementById("pb-toc");
-		const content = document.getElementById("pb-article-content");
-		if (!toc || !content) return;
-		const headings = Array.from(content.querySelectorAll("h2, h3")) as HTMLElement[];
-		if (headings.length === 0) {
-			toc.innerHTML = '<div class="pb-toc-empty">本文暂无目录</div>';
-			return;
-		}
-		let n = 0;
-		toc.innerHTML =
-			`<div class="pb-toc-list">` +
-			headings
-				.map((h) => {
-					const id = h.id || `pb-h-${n}`;
-					h.id = id;
-					if (h.tagName === "H2") {
-						n += 1;
-						return `<a class="pb-toc-h2" data-target="${id}"><span class="pb-toc-no">${n}</span><span>${h.textContent}</span></a>`;
-					}
-					return `<a class="pb-toc-h3" data-target="${id}"><span class="pb-toc-dot"></span><span>${h.textContent}</span></a>`;
-				})
-				.join("") +
-			`</div>`;
-		toc.querySelectorAll("a").forEach((a) => {
-			a.addEventListener("click", (e) => {
-				e.preventDefault();
-				const el = document.getElementById((a as HTMLElement).dataset.target!);
-				el?.scrollIntoView({ behavior: "smooth", block: "start" });
-			});
-		});
-		observer?.disconnect();
-		observer = new IntersectionObserver(
-			(entries) => {
-				for (const en of entries) {
-					if (en.isIntersecting) {
-						toc.querySelectorAll("a").forEach((a) => a.classList.remove("active"));
-						toc.querySelector(`a[data-target="${en.target.id}"]`)?.classList.add("active");
-					}
-				}
-			},
-			{ rootMargin: "-15% 0px -70% 0px" },
-		);
-		headings.forEach((h) => observer!.observe(h));
-	}
+	<PostPage page={page} />
 
-	// ── 选中文章 ────────────────────────────────
-	async function selectPost(id: string) {
-		const posts = await loadPosts();
-		const post = posts.find((p) => p.id === id);
-		if (!post) return;
-		currentId = id;
-
-		const def = document.getElementById("pb-default");
-		const article = document.getElementById("pb-article");
-		const title = document.getElementById("pb-article-title");
-		const meta = document.getElementById("pb-article-meta");
-		const content = document.getElementById("pb-article-content");
-		if (!def || !article || !title || !meta || !content) return;
-
-		def.classList.add("hidden");
-		article.classList.remove("hidden");
-		title.textContent = post.title;
-		meta.textContent = `${fmtDate(post.published)}${post.category ? " · " + post.category : ""}`;
-		if (post.encrypted) {
-			content.innerHTML =
-				'<div class="pb-encrypted">本文已加密，请前往文章页输入密码阅读。</div>';
-		} else if (!post.html) {
-			content.innerHTML = `<div class="pb-encrypted">该文章暂不支持站内预览，<a href="/posts/${post.id}/">前往文章页阅读 →</a></div>`;
-		} else {
-			content.innerHTML = post.html;
-		}
-
-		history.replaceState(null, "", `?p=${encodeURIComponent(id)}`);
-		renderEditCard();
-		renderToc();
-		highlightTree();
-		window.scrollTo({ top: 0 });
-	}
-
-	// ── 初始化与 swup 切页 ───────────────────────
-	async function init() {
-		if (!isPostsPage()) {
-			document.documentElement.removeAttribute("data-posts-browser");
-			return;
-		}
-		document.documentElement.setAttribute("data-posts-browser", "true");
-		ensureCards();
-		const posts = await loadPosts();
-		renderTree(posts);
-		renderEditCard();
-		const id = new URLSearchParams(location.search).get("p");
-		if (id && posts.some((p) => p.id === id)) {
-			await selectPost(id);
-		}
-	}
-
-	init();
-	const bindSwup = () =>
-		(window as any).swup?.hooks?.on("content:replace", () => init());
-	if ((window as any).swup) bindSwup();
-	else document.addEventListener("swup:enable", bindSwup, { once: true });
-</script>
-
-<style is:global>
-	/* 主页清空模式：仅在 /posts/ 页隐藏默认侧边栏组件，只显示文章浏览器的卡片 */
-	html[data-posts-browser="true"] #left-sidebar-sticky > *:not(#pb-tree-wrap):not(#pb-edit-wrap),
-	html[data-posts-browser="true"] #left-sidebar > *:not(#left-sidebar-sticky):not(#pb-tree-wrap):not(#pb-edit-wrap),
-	html[data-posts-browser="true"] #right-sidebar-sticky > *:not(#pb-toc-wrap),
-	html[data-posts-browser="true"] #right-sidebar > *:not(#right-sidebar-sticky):not(#pb-toc-wrap) {
-		display: none !important;
-	}
-
-	/* 分类树 */
-	.pb-tree {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		max-height: 60vh;
-		overflow-y: auto;
-	}
-	.pb-cat-head {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		width: 100%;
-		padding: 0.45rem 0.5rem;
-		border-radius: 0.5rem;
-		cursor: pointer;
-		font-weight: 700;
-		font-size: 0.875rem;
-		color: var(--primary, #10b981);
-	}
-	.pb-cat-head:hover {
-		background: var(--btn-plain-bg-hover, rgba(0, 0, 0, 0.05));
-	}
-	.pb-cat-count {
-		margin-left: auto;
-		font-size: 0.75rem;
-		font-weight: 600;
-	}
-	.pb-chevron {
-		width: 1rem;
-		height: 1rem;
-		transition: transform 0.2s ease;
-	}
-	.pb-cat-list[data-open="false"] {
-		display: none;
-	}
-	.pb-cat-head[aria-expanded="false"] .pb-chevron {
-		transform: rotate(-90deg);
-	}
-	.pb-post {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin: 0.15rem 0 0.15rem 0.75rem;
-		padding: 0.4rem 0.5rem;
-		border-radius: 0.5rem;
-		font-size: 0.85rem;
-		color: var(--tw-prose-body, #4b5563);
-		text-decoration: none;
-	}
-	.dark .pb-post {
-		color: #9ca3af;
-	}
-	.pb-post:hover {
-		background: var(--btn-plain-bg-hover, rgba(0, 0, 0, 0.05));
-	}
-	.pb-post.active {
-		color: var(--primary, #10b981);
-		font-weight: 700;
-		outline: 1.5px solid var(--primary, #10b981);
-		outline-offset: -1.5px;
-	}
-	.pb-post-title {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.pb-pin {
-		flex-shrink: 0;
-		font-size: 0.65rem;
-		font-weight: 700;
-		color: #ef4444;
-		border: 1px solid #ef4444;
-		border-radius: 0.25rem;
-		padding: 0 0.3rem;
-	}
-	.pb-icon {
-		width: 1rem;
-		height: 1rem;
-		flex-shrink: 0;
-	}
-
-	/* 编辑卡片 */
-	.pb-edit {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-	.pb-edit-item {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem;
-		border-radius: 0.5rem;
-		font-size: 0.875rem;
-		color: var(--tw-prose-body, #4b5563);
-		text-decoration: none;
-	}
-	.dark .pb-edit-item {
-		color: #9ca3af;
-	}
-	.pb-edit-item:hover {
-		background: var(--btn-plain-bg-hover, rgba(0, 0, 0, 0.05));
-	}
-	.pb-edit-item.disabled {
-		opacity: 0.45;
-		pointer-events: none;
-	}
-	.pb-edit-item span:nth-child(2) {
-		flex: 1;
-	}
-	.pb-new {
-		font-size: 0.65rem;
-		font-weight: 800;
-		letter-spacing: 0.05em;
-		color: var(--primary, #10b981);
-		border: 1px solid var(--primary, #10b981);
-		border-radius: 999px;
-		padding: 0.05rem 0.45rem;
-	}
-
-	/* 目录 */
-	.pb-toc {
-		max-height: 65vh;
-		overflow-y: auto;
-	}
-	.pb-toc-empty {
-		font-size: 0.8rem;
-		color: var(--content-meta, #9ca3af);
-		padding: 0.25rem 0.5rem;
-	}
-	.pb-toc-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-	}
-	.pb-toc-list a {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		padding: 0.4rem 0.55rem;
-		border-radius: 0.5rem;
-		font-size: 0.8rem;
-		color: var(--tw-prose-body, #4b5563);
-		text-decoration: none;
-		cursor: pointer;
-	}
-	.dark .pb-toc-list a {
-		color: #9ca3af;
-	}
-	.pb-toc-list a:hover {
-		background: var(--btn-plain-bg-hover, rgba(0, 0, 0, 0.05));
-	}
-	.pb-toc-list a.active {
-		color: var(--primary, #10b981);
-		font-weight: 700;
-		outline: 1.5px solid var(--primary, #10b981);
-		outline-offset: -1.5px;
-	}
-	.pb-toc-h2 .pb-toc-no {
-		font-weight: 800;
-		color: var(--primary, #10b981);
-		min-width: 1rem;
-	}
-	.pb-toc-h3 {
-		padding-left: 1.4rem !important;
-	}
-	.pb-toc-dot {
-		width: 0.4rem;
-		height: 0.4rem;
-		border-radius: 999px;
-		background: currentColor;
-		opacity: 0.5;
-		flex-shrink: 0;
-	}
-
-	/* 文章内容 */
-	#pb-article-content :is(h2, h3) {
-		scroll-margin-top: 6rem;
-	}
-	.pb-encrypted {
-		padding: 2rem 0;
-		text-align: center;
-		color: var(--content-meta, #9ca3af);
-	}
-</style>
+	{lastPage > 1 && <Pagination page={page} />}
+</MainGridLayout>
