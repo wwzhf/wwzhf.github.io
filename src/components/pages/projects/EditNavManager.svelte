@@ -52,9 +52,28 @@
 		document.querySelector(".booknav-static")?.classList.remove("hidden");
 	}
 
+	// 显式逐字段深拷贝：不依赖 structuredClone/JSON，彻底规避
+	// DataCloneError（Svelte 5 响应式 proxy / 混入 DOM 引用会导致克隆失败）
+	function cloneGroups(src: NavGroup[]): NavGroup[] {
+		return src.map((g) => ({
+			id: g.id != null ? String(g.id) : "group-" + uid(),
+			name: g.name != null ? String(g.name) : "",
+			desc: g.desc != null ? String(g.desc) : undefined,
+			icon: g.icon != null ? String(g.icon) : undefined,
+			weight: typeof g.weight === "number" ? g.weight : undefined,
+			items: (g.items || []).map((it) => ({
+				title: it.title != null ? String(it.title) : "",
+				url: it.url != null ? String(it.url) : "",
+				desc: it.desc != null ? String(it.desc) : undefined,
+				icon: it.icon != null ? String(it.icon) : undefined,
+				weight: typeof it.weight === "number" ? it.weight : undefined,
+			})),
+		}));
+	}
+
 	function startEdit(): void {
 		if (editing) return;
-		editGroups = structuredClone(groups);
+		editGroups = cloneGroups(groups);
 		editing = true;
 		error = "";
 		okMsg = "";
@@ -84,14 +103,30 @@
 		// 直接捕获侧边栏「编辑页面导航」按钮点击（capture 阶段，先于 swup 拦截）：
 		// 不依赖 EditBooknavCard 的脚本/自定义事件链路，即使按钮是旧版 <a> 也能生效
 		const onDocClick = (e: MouseEvent) => {
-			const btn = (e.target as Element | null)?.closest?.("#edit-booknav-trigger");
-			if (!btn) return;
-			e.preventDefault();
-			e.stopPropagation();
-			startEdit();
+			try {
+				const btn = (e.target as Element | null)?.closest?.("#edit-booknav-trigger");
+				if (!btn) return;
+				e.preventDefault();
+				e.stopPropagation();
+				startEdit();
+			} catch (err) {
+				console.error("[EditNavManager] click handler error:", err);
+			}
 		};
-		const onHash = () => checkHash();
-		const onEvent = () => startEdit();
+		const onHash = () => {
+			try {
+				checkHash();
+			} catch (err) {
+				console.error("[EditNavManager] hash handler error:", err);
+			}
+		};
+		const onEvent = () => {
+			try {
+				startEdit();
+			} catch (err) {
+				console.error("[EditNavManager] event handler error:", err);
+			}
+		};
 		document.addEventListener("click", onDocClick, true);
 		window.addEventListener("hashchange", onHash);
 		window.addEventListener("fqzlr:edit-nav", onEvent);
