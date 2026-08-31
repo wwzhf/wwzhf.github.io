@@ -44,13 +44,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			showOnPostPage: true,
 		},
 		{
-			// 组件类型：音乐播放器
-			type: "music",
-			enable: true,
-			position: "sticky",
-			showOnPostPage: true,
-		},
-		{
 			// 组件类型：分类组件
 			type: "categories",
 			enable: true,

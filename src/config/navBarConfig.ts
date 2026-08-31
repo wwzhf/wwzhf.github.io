@@ -74,10 +74,6 @@ const links: NavBarLink[] = [
 		url: "#",
 		children: [
 			{
-				name: "音乐",
-				url: "/music/",
-			},
-			{
 				name: "动画",
 				url: "/anime/",
 			},
