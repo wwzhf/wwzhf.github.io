@@ -3,18 +3,29 @@ import { Icon } from "astro-icon/components";
 import { url } from "@/utils/url-utils";
 
 // 侧边栏「写文章」卡（复刻 fqzlr 左侧编辑卡）
-// 规则（2026-08-31 用户确认）：只显示在 /posts/、/archive/、/categories/ 三个页面，
-// 其他页面（含文章详情页/主页/关于页等）一律不渲染。
-// 三个页面内仅显示「写新文章」（入口固定指向 /write/）
+// 规则（2026-08-31 用户确认）：
+//   - 文章详情页 /posts/<slug>/  → 显示「写新文章」+「编辑本页」（编辑本页把当前文章数据写入
+//     localStorage，/write/ 编辑模式直接加载，无需 GitHub Token）
+//   - /posts/ /archive/ /categories/ 三个列表页 → 只显示「写新文章」
+//   - 其他页面 → 不渲染
 const WRITE_CARD_PATHS = ["/posts/", "/archive/", "/categories/"];
 const path = Astro.url.pathname;
 
-// 不在白名单页面时直接不渲染
-if (!WRITE_CARD_PATHS.includes(path)) {
+// 文章详情页：/posts/<slug>/ （slug 非空且不是列表页）
+const isArticleDetail = /^\/posts\/[^/]+\/?$/.test(path);
+
+// 不在白名单页面且非文章详情页时直接不渲染
+if (!WRITE_CARD_PATHS.includes(path) && !isArticleDetail) {
 	return null;
 }
 
-const href = `${url("/write/")}?mode=new`;
+const newHref = `${url("/write/")}?mode=new`;
+const entry = isArticleDetail
+	? decodeURIComponent(path.replace(/^\/posts\//, "").replace(/\/$/, ""))
+	: undefined;
+const editHref = entry
+	? `${url("/write/")}?mode=edit&collection=posts&entry=${encodeURIComponent(entry)}`
+	: undefined;
 ---
 
 <div class:list={["card-base", "p-4", Astro.props.class]} style={Astro.props.style}>
@@ -26,11 +37,49 @@ const href = `${url("/write/")}?mode=new`;
 	</div>
 	<div class="flex flex-col gap-2">
 		<a
-			href={href}
+			href={newHref}
 			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
 		>
 			<Icon name="material-symbols:note-add-rounded" class="text-[1.35rem]" />
 			写新文章
 		</a>
+		{
+			editHref && entry && (
+				<a
+					id="edit-current-article"
+					href={editHref}
+					class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+					data-collection="posts"
+					data-entry={entry}
+				>
+					<Icon name="material-symbols:edit-note-rounded" class="text-[1.35rem]" />
+					编辑本页
+				</a>
+			)
+		}
 	</div>
 </div>
+
+<script>
+	// 「编辑本页」点击时：把页面注入的当前文章数据（#current-article-data）写入 localStorage，
+	// 让 /write/ 编辑模式无需 GitHub Token 即可加载正文；页面没有注入数据时回退为默认链接行为
+	// 防重：侧边栏 static 容器已加入 swup containers，模块脚本随切页重载，避免重复注册 listener
+	if (!window.__editCardListener) {
+		window.__editCardListener = true;
+		const EDIT_KEY = "write-edit-article";
+		document.addEventListener("click", (e) => {
+			const btn = (e.target as Element | null)?.closest?.("#edit-current-article");
+			if (!btn) return;
+			const dataEl = document.getElementById("current-article-data");
+			if (!dataEl || !dataEl.textContent) return; // 无注入数据，走默认跳转
+			try {
+				const article = JSON.parse(dataEl.textContent);
+				article.collection = btn.getAttribute("data-collection") || article.collection;
+				article.entry = btn.getAttribute("data-entry") || article.entry;
+				localStorage.setItem(EDIT_KEY, JSON.stringify(article));
+			} catch {
+				/* JSON 解析失败则走默认跳转 */
+			}
+		});
+	}
+</script>
