@@ -49,11 +49,10 @@ const links: NavBarLink[] = [
 				url: "/dynamic/",
 				pageKey: "dynamic",
 			},
-			// P3 新增页面：说说（/moments/）
-			// {
-			// 	name: "说说",
-			// 	url: "/moments/",
-			// },
+			{
+				name: "说说",
+				url: "/moments/",
+			},
 			{
 				name: "相册",
 				url: "/gallery/",

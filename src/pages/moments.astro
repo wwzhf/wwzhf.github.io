@@ -1,0 +1,44 @@
+---
+import { getCollection } from "astro:content";
+import DynamicFeed from "@/components/pages/dynamic/DynamicFeed.svelte";
+import DynamicItemTemplate from "@/components/pages/dynamic/DynamicItemTemplate.astro";
+import MomentsHeader from "@/components/pages/moments/MomentsHeader.astro";
+import { commentConfig, dynamicConfig, siteConfig } from "@/config";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/dynamic.css";
+import { url } from "@/utils/url-utils";
+
+// 说说页（fqzlr moments 风格）：MOMENTS 页眉 + 动态流
+const moments = await getCollection("dynamic");
+const itemsPerPage = Math.max(1, dynamicConfig.itemsPerPage ?? 10);
+const showInlineComments = Boolean(
+	dynamicConfig.showComment !== false &&
+		commentConfig.type &&
+		commentConfig.type !== "none",
+);
+const dataUrl = url(dynamicConfig.apiUrl || "/api/dynamic.json");
+const memos = dynamicConfig.memos;
+---
+
+<MainGridLayout title="说说" description="说说与日常动态">
+	<section class="dynamic-page" aria-labelledby="moments-page-title">
+		<MomentsHeader title="说说" count={moments.length} />
+
+		<DynamicFeed
+			client:load
+			source={dataUrl}
+			{itemsPerPage}
+			showComments={showInlineComments}
+			emptyText={i18n(I18nKey.dynamicEmpty)}
+			noResultsText={i18n(I18nKey.dynamicNoResults)}
+			loadingText={i18n(I18nKey.dynamicLoading)}
+			allYearsText={i18n(I18nKey.dynamicAllYears)}
+			timezone={siteConfig.timezone || "UTC"}
+			{memos}
+		/>
+
+		<DynamicItemTemplate />
+	</section>
+</MainGridLayout>

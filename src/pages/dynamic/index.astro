@@ -1,7 +1,9 @@
 ---
+import { getCollection } from "astro:content";
 import { Icon } from "astro-icon/components";
 import DynamicFeed from "@/components/pages/dynamic/DynamicFeed.svelte";
 import DynamicItemTemplate from "@/components/pages/dynamic/DynamicItemTemplate.astro";
+import MomentsHeader from "@/components/pages/moments/MomentsHeader.astro";
 import CmsEditButton from "@/components/misc/CmsEditButton.astro";
 import { commentConfig, dynamicConfig, siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
@@ -27,10 +29,12 @@ const dataUrl = dynamicConfig.apiUrl?.startsWith("http")
 	? dynamicConfig.apiUrl
 	: url(dynamicConfig.apiUrl || "/api/dynamic.json");
 const memos = dynamicConfig.memos;
+const momentsCount = (await getCollection("dynamic")).length;
 ---
 
 <MainGridLayout title={title} description={description}>
 	<section class="dynamic-page" aria-labelledby="dynamic-page-title">
+		<MomentsHeader title={title} count={momentsCount} />
 		<div>
 			<header class="dynamic-page-header card-base">
 				<div class="dynamic-page-heading">
