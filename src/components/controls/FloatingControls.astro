@@ -49,6 +49,10 @@ const tocHeadings = headings ?? [];
 			<Icon name="material-symbols:category-rounded" class="dock-icon" />
 			<span class="dock-label">分类</span>
 		</a>
+		<button class="dock-item dock-btn" id="dock-sakura-btn" title="樱花特效" aria-label="樱花特效" aria-pressed="false">
+			<Icon name="material-symbols:local-florist-rounded" class="dock-icon" />
+			<span class="dock-label">樱花</span>
+		</button>
 		<button class="dock-item dock-btn" id="dock-announcement-btn" title="公告" aria-label="公告" aria-expanded="false">
 			<Icon name="material-symbols:campaign-rounded" class="dock-icon" />
 			<span class="dock-label">公告</span>
@@ -149,6 +153,16 @@ const tocHeadings = headings ?? [];
 
 	.dock-btn:active {
 		transform: scale(0.92);
+	}
+
+	/* 樱花开关激活态（高亮表示开启） */
+	.dock-btn.dock-active {
+		background: color-mix(in srgb, var(--primary, #10b981) 18%, transparent);
+		color: var(--primary, #10b981);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #10b981) 40%, transparent);
+	}
+	.dock-btn.dock-active:hover {
+		background: color-mix(in srgb, var(--primary, #10b981) 26%, transparent);
 	}
 
 	.dock-icon {
@@ -334,6 +348,50 @@ const tocHeadings = headings ?? [];
 				}
 			});
 		}
+	}
+
+	// 樱花特效开关（与设置面板/樱花 worker 联动）
+	// 状态存储：localStorage["sakuraEnabled"]；默认值 = effectsConfig.sakuraConfig.enable
+	const sakuraBtn = document.getElementById("dock-sakura-btn");
+
+	function getSakuraEnabled(): boolean {
+		try {
+			const stored = localStorage.getItem("sakuraEnabled");
+			if (stored === null) return true; // 默认开启（sakuraConfig.enable = true）
+			return stored === "true";
+		} catch {
+			return true;
+		}
+	}
+
+	function setSakuraEnabled(enabled: boolean) {
+		try {
+			localStorage.setItem("sakuraEnabled", String(enabled));
+		} catch {
+			/* ignore */
+		}
+		document.documentElement.setAttribute("data-sakura-enabled", String(enabled));
+		window.dispatchEvent(new CustomEvent("sakuraToggle", { detail: { enabled } }));
+		updateSakuraBtn(enabled);
+	}
+
+	function updateSakuraBtn(enabled: boolean) {
+		if (!sakuraBtn) return;
+		sakuraBtn.setAttribute("aria-pressed", String(enabled));
+		sakuraBtn.classList.toggle("dock-active", enabled);
+	}
+
+	if (sakuraBtn) {
+		sakuraBtn.addEventListener("click", () => {
+			setSakuraEnabled(!getSakuraEnabled());
+		});
+		// 初始化状态
+		updateSakuraBtn(getSakuraEnabled());
+		// 与设置面板的樱花开关保持同步
+		window.addEventListener("sakuraToggle", (e) => {
+			const enabled = (e as CustomEvent).detail?.enabled;
+			if (typeof enabled === "boolean") updateSakuraBtn(enabled);
+		});
 	}
 
 	// Swup/Astro 页面切换后重新初始化
