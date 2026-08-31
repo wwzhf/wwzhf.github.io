@@ -491,9 +491,41 @@
 	// 以下是原 renderPreview 实现，先注释掉
 
 	// 初始化（onMount）
+// 从"编辑本页"注入的数据填充表单（localStorage，无需 GitHub Token）
+		const EDIT_KEY = "write-edit-article";
+		function fillFromEditData(d: any) {
+			title = d.title || "";
+			slug = d.slug || d.entry || "";
+			cover = d.cover || "";
+			description = d.description || "";
+			tagsText = d.tags || "";
+			category = d.category || "";
+			published = d.published || new Date().toISOString().slice(0, 10);
+			draft = !!d.draft;
+			pinned = !!d.pinned;
+			content = d.body || "";
+			if (d.collection) collection = d.collection;
+			if (d.entry) entry = d.entry;
+		}
+
 		function start() {
 			readUrl();
 			checkKey();
+			// 编辑模式：优先加载"编辑本页"注入的文章数据（localStorage），无需 GitHub Token
+			if (mode === "edit") {
+				const injected = localStorage.getItem(EDIT_KEY);
+				if (injected) {
+					try {
+						const d = JSON.parse(injected);
+						fillFromEditData(d);
+						localStorage.removeItem(EDIT_KEY);
+						showToast("success", "已加载当前文章，可直接编辑");
+						return;
+					} catch {
+						/* 解析失败则继续走草稿/GitHub 流程 */
+					}
+				}
+			}
 			const hasDraft = localStorage.getItem(DRAFT_KEY);
 			if (hasDraft) loadDraft();
 			else if (mode === "edit") loadFromGithub();

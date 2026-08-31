@@ -79,6 +79,21 @@ const processedImage = processCoverImageSync(entry.data.image, entry.id);
 const apiUrls = getApiUrlList(entry.data.image, entry.id);
 // 前端快捷编辑：CMS 中该文章的条目名（文件名去扩展名）
 const cmsEntry = removeFileExtension(entry.id);
+// 供 EditCard「编辑本页」使用：点击时写入 localStorage，/write/ 编辑模式直接加载（无需 GitHub Token）
+const articleEditData = {
+	collection: "posts",
+	entry: cmsEntry,
+	title: entry.data.title || "",
+	slug: cmsEntry,
+	cover: entry.data.image || "",
+	description: entry.data.description || "",
+	tags: (entry.data.tags || []).join(", "),
+	category: entry.data.category || "",
+	published: formatDateToYYYYMMDD(entry.data.published),
+	draft: !!entry.data.draft,
+	pinned: !!entry.data.pinned,
+	body: entry.body || "",
+};
 const showPostCover = Boolean(processedImage && coverImageConfig.enableInPost);
 const usePostCoverOverlay =
 	showPostCover && (coverImageConfig.enableInPostOverlay ?? true);
@@ -697,3 +712,6 @@ const seriesData = await getSeriesPosts(entry);
 
   <CmsEditButton collection="posts" entry={cmsEntry} />
 </MainGridLayout>
+
+<!-- 当前文章数据：供 EditCard「编辑本页」点击时写入 localStorage，/write/ 直接加载编辑 -->
+<script type="application/json" id="current-article-data" set:html={JSON.stringify(articleEditData)}></script>

@@ -2,20 +2,23 @@
 import { Icon } from "astro-icon/components";
 import { url } from "@/utils/url-utils";
 
-// 侧边栏「写文章」卡（复刻 fqzlr 左侧编辑卡的写新文章/编辑本页两个入口）
-// 根据当前路由自动判断 collection/entry：
-//   /posts/<slug>     → collection=posts,   entry=<slug>
-//   /about/ /guestbook/ /changelog/ /notes/ /plans/ /footprint/ → collection=pages
-//   /dynamic/         → collection=dynamic
-//   其他              → 仅"写新文章"按钮
+// 侧边栏「写文章」卡（复刻 fqzlr 左侧编辑卡）
+// 规则：
+//   文章详情页 /posts/<slug>/  → 显示「写新文章」+「编辑本页」（编辑本页会把当前文章数据写入 localStorage，
+//                                /write/ 编辑模式直接加载，无需 GitHub Token）
+//   文章列表 /posts/ 及其他页  → 只显示「写新文章」
+//   静态页 /about/ 等          → 显示「写新文章」+「编辑本页」（编辑对应 spec 文件，同样走 localStorage）
 const path = Astro.url.pathname;
 type Collection = "posts" | "pages" | "dynamic";
 let collection: Collection = "posts";
 let entry: string | undefined;
+let isArticleDetail = false;
 
-if (path.startsWith("/posts/")) {
+// 文章详情页：/posts/<slug>/ （slug 非空且不是列表页）
+if (/^\/posts\/[^/]+\/?$/.test(path)) {
 	collection = "posts";
-	entry = path.replace(/^\/posts\//, "").replace(/\/$/, "") || undefined;
+	entry = decodeURIComponent(path.replace(/^\/posts\//, "").replace(/\/$/, ""));
+	isArticleDetail = true;
 } else if (path === "/about/") {
 	collection = "pages";
 	entry = "about";
@@ -69,10 +72,13 @@ const buildHref = (mode: "new" | "edit") => {
 		{
 			entry && (
 				<a
+					id="edit-current-article"
 					href={buildHref("edit")}
 					target="_blank"
 					rel="noopener"
 					class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
+					data-collection={collection}
+					data-entry={entry}
 				>
 					<Icon name="material-symbols:edit-note-rounded" class="text-[1.35rem]" />
 					编辑本页
@@ -81,3 +87,24 @@ const buildHref = (mode: "new" | "edit") => {
 		}
 	</div>
 </div>
+
+<script>
+	// 「编辑本页」点击时：把页面注入的当前文章数据（#current-article-data）写入 localStorage，
+	// 让 /write/ 编辑模式无需 GitHub Token 即可加载正文；页面没有注入数据时回退为默认链接行为
+	const EDIT_KEY = "write-edit-article";
+	document.addEventListener("click", (e) => {
+		const btn = (e.target as Element | null)?.closest?.("#edit-current-article");
+		if (!btn) return;
+		const dataEl = document.getElementById("current-article-data");
+		if (!dataEl || !dataEl.textContent) return; // 无注入数据，走默认跳转
+		try {
+			const article = JSON.parse(dataEl.textContent);
+			// 合并当前 collection/entry（确保与按钮链接一致）
+			article.collection = btn.getAttribute("data-collection") || article.collection;
+			article.entry = btn.getAttribute("data-entry") || article.entry;
+			localStorage.setItem(EDIT_KEY, JSON.stringify(article));
+		} catch {
+			/* JSON 解析失败则走默认跳转 */
+		}
+	});
+</script>
