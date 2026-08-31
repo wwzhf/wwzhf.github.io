@@ -57,8 +57,6 @@ const buildHref = (mode: "new" | "edit") => {
 	<div class="flex flex-col gap-2">
 		<a
 			href={buildHref("new")}
-			target="_blank"
-			rel="noopener"
 			class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
 		>
 			<Icon name="material-symbols:note-add-rounded" class="text-[1.35rem]" />
@@ -69,8 +67,6 @@ const buildHref = (mode: "new" | "edit") => {
 				<a
 					id="edit-current-article"
 					href={buildHref("edit")}
-					target="_blank"
-					rel="noopener"
 					class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95 flex items-center"
 					data-collection={collection}
 					data-entry={entry}
