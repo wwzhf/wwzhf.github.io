@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import EditNavManager from "@/components/pages/projects/EditNavManager.svelte";
 import { booknavPageConfig, siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
@@ -352,4 +353,9 @@ const description = "收录个人网站、常用工具和收藏网站";
       justify-content: center;
     }
   </style>
+
+  <!-- 网站导航编辑面板（可视化增删，锚点 #edit-nav） -->
+  <div class="mt-6">
+    <EditNavManager client:load />
+  </div>
 </MainGridLayout>

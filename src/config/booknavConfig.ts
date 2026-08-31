@@ -23,7 +23,10 @@ export const booknavPageConfig: BooknavPageConfig = {
 
 // 书签导航配置
 // 每个数组项是一个分类组，分类组内的 items 是该分类下的书签
+// ⚠️ 数据区由 /projects/ 页「编辑页面导航」面板维护：NAV-DATA-START/END 之间的内容
+// 会被客户端整体替换（JSON 序列化），请勿在标记内写注释或非 JSON 语法
 export const booknavConfig: BooknavGroup[] = [
+	// ===== NAV-DATA-START =====
 	{
 		id: "dev",
 		name: "开发",
@@ -153,4 +156,5 @@ export const booknavConfig: BooknavGroup[] = [
 			},
 		],
 	},
+	// ===== NAV-DATA-END =====
 ];

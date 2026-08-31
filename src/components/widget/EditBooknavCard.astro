@@ -3,11 +3,11 @@ import { Icon } from "astro-icon/components";
 import { url } from "@/utils/url-utils";
 
 // 侧边栏「编辑页面导航」卡（仅 /projects/ 网站导航页显示）
-// 点击进入 /write/ 编辑器（collection=config），加载并编辑 booknavConfig.ts 书签导航配置
+// 点击跳转到页内 #edit-nav 锚点，打开可视化增删管理面板（EditNavManager）
 if (Astro.url.pathname !== "/projects/") {
 	return null;
 }
-const href = `${url("/write/")}?mode=edit&collection=config&entry=booknavConfig`;
+const href = `${url("/projects/")}#edit-nav`;
 ---
 
 <div class:list={["card-base", "p-4", Astro.props.class]} style={Astro.props.style}>
