@@ -65,7 +65,11 @@ const banner = getBannerVisibilityState({
 	title,
 	bannerPostMeta,
 });
-const sidebar = getEffectiveSidebarState({ isPostPage });
+const sidebar = getEffectiveSidebarState({
+	isPostPage,
+	// 文章列表页（/posts/ 列表，非详情）不显示右侧边栏
+	isPostListPage: /^\/posts\/?$/.test(Astro.url.pathname),
+});
 
 const { hasWallpaper } = banner;
 const {

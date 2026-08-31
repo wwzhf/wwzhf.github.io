@@ -8,8 +8,8 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	enable: true,
 
 	// 侧边栏位置：
-	// left: 仅显示左侧边栏（fqzlr 布局：左侧信息流，右侧改为浮动 Dock）
-	position: "left",
+	// both: 双侧栏（左侧信息流 + 右侧日历/目录，用户需求：除文章列表页外其他页面右侧显示日历）
+	position: "both",
 
 	// 平板端(769-1279px)显示哪侧侧边栏，仅position为both时生效
 	tabletSidebar: "left",
@@ -70,10 +70,10 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 		},
 		{
 			type: "calendar",
-			enable: false,
-			showTitle: false,
+			enable: true,
+			showTitle: true,
 			position: "sticky",
-			showOnPostPage: false,
+			showOnPostPage: true,
 			specificConfig: {
 				calendar: {
 					showHeatmap: true,

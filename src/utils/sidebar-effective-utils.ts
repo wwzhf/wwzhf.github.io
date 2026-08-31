@@ -10,6 +10,8 @@ import {
 
 export interface EffectiveSidebarContext {
 	isPostPage: boolean;
+	/** 文章列表页（/posts/ 及分页），此页不显示右侧边栏（用户需求：除文章列表外其他页面右侧显示日历） */
+	isPostListPage?: boolean;
 }
 
 export interface EffectiveSidebarState {
@@ -72,7 +74,7 @@ export function buildFooterClass(config: ResponsiveSidebarConfig): string {
 export function getEffectiveSidebarState(
 	ctx: EffectiveSidebarContext,
 ): EffectiveSidebarState {
-	const { isPostPage } = ctx;
+	const { isPostPage, isPostListPage = false } = ctx;
 
 	const sidebarConfig = getResponsiveSidebarConfig();
 
@@ -95,10 +97,12 @@ export function getEffectiveSidebarState(
 
 	const effectiveIsBothSidebars: boolean =
 		sidebarConfig.isBothSidebars || shouldShowBothSidebarsOnPostPage;
+	// 文章列表页（/posts/）不显示右侧边栏
 	const effectiveHasRightComponents: boolean =
-		sidebarConfig.hasRightComponents ||
-		(shouldAddRightSidebar &&
-			sidebarLayoutConfig.rightComponents.some((comp) => comp.enable));
+		!isPostListPage &&
+		(sidebarConfig.hasRightComponents ||
+			(shouldAddRightSidebar &&
+				sidebarLayoutConfig.rightComponents.some((comp) => comp.enable)));
 	const effectiveHasLeftComponents: boolean =
 		sidebarConfig.hasLeftComponents ||
 		(shouldAddLeftSidebar &&
