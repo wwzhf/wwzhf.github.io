@@ -128,6 +128,10 @@ export default defineConfig({
 				"#swup-container",
 				"#left-sidebar-dynamic",
 				"#right-sidebar-dynamic",
+				// 侧边栏静态容器（position=both 时左右侧栏走 static 容器，内容随页面变化：
+				// 左栏 EditCard 的「编辑本页」按钮、右栏 calendar/TOC 需随 swup 切页更新）
+				"#left-sidebar-wrapper",
+				"#right-sidebar-static",
 				"#floating-toc-wrapper",
 			],
 			smoothScrolling: false,

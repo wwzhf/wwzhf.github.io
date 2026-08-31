@@ -82,20 +82,24 @@ const buildHref = (mode: "new" | "edit") => {
 <script>
 	// 「编辑本页」点击时：把页面注入的当前文章数据（#current-article-data）写入 localStorage，
 	// 让 /write/ 编辑模式无需 GitHub Token 即可加载正文；页面没有注入数据时回退为默认链接行为
-	const EDIT_KEY = "write-edit-article";
-	document.addEventListener("click", (e) => {
-		const btn = (e.target as Element | null)?.closest?.("#edit-current-article");
-		if (!btn) return;
-		const dataEl = document.getElementById("current-article-data");
-		if (!dataEl || !dataEl.textContent) return; // 无注入数据，走默认跳转
-		try {
-			const article = JSON.parse(dataEl.textContent);
-			// 合并当前 collection/entry（确保与按钮链接一致）
-			article.collection = btn.getAttribute("data-collection") || article.collection;
-			article.entry = btn.getAttribute("data-entry") || article.entry;
-			localStorage.setItem(EDIT_KEY, JSON.stringify(article));
-		} catch {
-			/* JSON 解析失败则走默认跳转 */
-		}
-	});
+	// 防重：侧边栏 static 容器已加入 swup containers，模块脚本会随切页重载，避免重复注册 document listener
+	if (!window.__editCardListener) {
+		window.__editCardListener = true;
+		const EDIT_KEY = "write-edit-article";
+		document.addEventListener("click", (e) => {
+			const btn = (e.target as Element | null)?.closest?.("#edit-current-article");
+			if (!btn) return;
+			const dataEl = document.getElementById("current-article-data");
+			if (!dataEl || !dataEl.textContent) return; // 无注入数据，走默认跳转
+			try {
+				const article = JSON.parse(dataEl.textContent);
+				// 合并当前 collection/entry（确保与按钮链接一致）
+				article.collection = btn.getAttribute("data-collection") || article.collection;
+				article.entry = btn.getAttribute("data-entry") || article.entry;
+				localStorage.setItem(EDIT_KEY, JSON.stringify(article));
+			} catch {
+				/* JSON 解析失败则走默认跳转 */
+			}
+		});
+	}
 </script>
