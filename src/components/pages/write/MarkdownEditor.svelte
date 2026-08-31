@@ -574,6 +574,8 @@
 		</button>
 	</div>
 
+	<div class="write-body">
+	<div class="write-main">
 	<input
 		type="text"
 		class="title-input"
@@ -624,9 +626,10 @@
 			⚠ 请先点击工具栏「导入密钥」按钮导入 GitHub Token（需要 repo 权限），否则只能保存为本地草稿。
 		</div>
 	{/if}
+	</div>
 
-	<details class="meta-form">
-		<summary>📋 元数据（点击展开）</summary>
+	<aside class="meta-panel">
+		<div class="meta-panel-title">📋 元数据</div>
 		<div class="meta-grid">
 			<label>
 				<span>文章 Slug</span>
@@ -683,7 +686,8 @@
 				导出 .md
 			</button>
 		</div>
-	</details>
+	</aside>
+	</div>
 
 	{#if toast}
 		<div
@@ -894,22 +898,54 @@
 		background: #422006;
 		color: #fde68a;
 	}
-	.meta-form {
+	/* 左右并行布局：左侧编辑器 + 右侧元数据（桌面端），移动端堆叠 */
+	.write-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		align-items: stretch;
+	}
+	@media (min-width: 1024px) {
+		.write-body {
+			flex-direction: row;
+			align-items: flex-start;
+		}
+	}
+	.write-main {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	.meta-panel {
+		flex: 0 0 auto;
+		width: 100%;
 		background: var(--card-bg, #fff);
 		border: 1px solid var(--line-divider, #e5e7eb);
-		border-radius: 0.5rem;
-		padding: 0.5rem 0.75rem;
+		border-radius: 0.75rem;
+		padding: 0.9rem 1rem;
+		align-self: stretch;
 	}
-	.meta-form summary {
-		cursor: pointer;
-		font-weight: 500;
-		padding: 0.25rem 0;
+	@media (min-width: 1024px) {
+		.meta-panel {
+			width: 21rem;
+			max-width: 100%;
+			position: sticky;
+			top: 5.5rem;
+		}
+	}
+	.meta-panel-title {
+		font-weight: 700;
+		font-size: 0.95rem;
+		margin-bottom: 0.6rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid var(--line-divider, #e5e7eb);
 	}
 	.meta-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		grid-template-columns: 1fr;
 		gap: 0.6rem;
-		margin-top: 0.6rem;
 	}
 	.meta-grid label {
 		display: flex;
