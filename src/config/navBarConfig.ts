@@ -115,11 +115,6 @@ const links: NavBarLink[] = [
 			// 	url: "/projects/",
 			// },
 			{
-				name: "赞助",
-				url: "/sponsor/",
-				pageKey: "sponsor",
-			},
-			{
 				name: "搜索",
 				url: "/search/",
 			},
