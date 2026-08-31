@@ -1,7 +1,7 @@
 import type { SidebarLayoutConfig } from "../types/sidebarConfig";
 
 /**
- * 侧边栏布局配置（复刻 fqzlr：单左侧栏，profile + 编辑卡 + 音乐 + 信息组件）
+ * 侧边栏布局配置（复刻 fqzlr：单左侧栏，profile + 编辑卡 + 信息组件）
  */
 export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	// 是否启用侧边栏功能
