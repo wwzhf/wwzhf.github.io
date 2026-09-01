@@ -49,14 +49,6 @@ const links: NavBarLink[] = [
 				url: "/bangumi/",
 				pageKey: "bangumi",
 			},
-			{
-				name: "足迹",
-				url: "/footprint/",
-			},
-			{
-				name: "时间轴",
-				url: "/timeline/",
-			},
 		],
 	},
 ];
