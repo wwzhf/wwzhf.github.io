@@ -79,11 +79,54 @@
 		msg = m;
 	}
 
+	// 提交后轮询 GitHub Actions：本次触发的 run 部署成功后自动刷新页面（带缓存穿透参数）
+	function afterCommit(startTs: number) {
+		showOk("✅ 已提交，部署完成后自动刷新页面…");
+		const deadline = startTs + 6 * 60 * 1000;
+		const poll = async () => {
+			if (Date.now() > deadline) {
+				showOk("部署较慢，可稍后手动刷新查看最新图库");
+				return;
+			}
+			try {
+				const resp = await fetch(
+					`https://api.github.com/repos/${REPO}/actions/runs?per_page=1&event=push`,
+					{
+						headers: {
+							Authorization: `token ${pat()}`,
+							Accept: "application/vnd.github+json",
+						},
+					},
+				);
+				if (resp.ok) {
+					const data = await resp.json();
+					const run = data.workflow_runs?.[0];
+					// 只看本次操作之后触发的 run
+					if (run && new Date(run.created_at).getTime() >= startTs - 30 * 1000) {
+						if (run.conclusion === "success") {
+							location.href = location.pathname + "?t=" + Date.now();
+							return;
+						}
+						if (run.status === "completed" && run.conclusion !== "success") {
+							showErr("部署失败，请到 GitHub Actions 查看日志");
+							return;
+						}
+					}
+				}
+			} catch {
+				// 网络抖动继续轮询
+			}
+			setTimeout(poll, 15000);
+		};
+		setTimeout(poll, 15000);
+	}
+
 	async function setWallpaper(img: string) {
 		if (!requirePat() || busy) return;
 		busy = true;
 		busyFor = img;
 		msg = "";
+		const startTs = Date.now();
 		try {
 			const FILE = "src/config/backgroundWallpaper.ts";
 			const { sha, text } = await fetchFile(FILE);
@@ -95,7 +138,7 @@
 			else if (strRe.test(text)) newText = text.replace(strRe, `$1 "/gallery/${img}"`);
 			if (!newText) throw new Error("未找到 desktop 壁纸配置");
 			await pushFile(FILE, newText, sha, `chore: 图库设置壁纸 /gallery/${img}`);
-			showOk(`✅ 已设为壁纸，正在自动部署（约 1-2 分钟生效）`);
+			afterCommit(startTs);
 		} catch (e) {
 			showErr("设置壁纸失败：" + (e as Error).message);
 		}
@@ -108,6 +151,7 @@
 		busy = true;
 		busyFor = img;
 		msg = "";
+		const startTs = Date.now();
 		try {
 			const FILE = "src/config/profileConfig.ts";
 			const { sha, text } = await fetchFile(FILE);
@@ -115,7 +159,7 @@
 			if (!re.test(text)) throw new Error("未找到 avatar 配置");
 			const newText = text.replace(re, `$1 "/gallery/${img}"`);
 			await pushFile(FILE, newText, sha, `chore: 图库设置头像 /gallery/${img}`);
-			showOk(`✅ 已设为头像，正在自动部署（约 1-2 分钟生效）`);
+			afterCommit(startTs);
 		} catch (e) {
 			showErr("设置头像失败：" + (e as Error).message);
 		}
@@ -135,6 +179,7 @@
 		}
 		uploading = true;
 		msg = "";
+		const startTs = Date.now();
 		try {
 			const ext = file.name.split(".").pop()?.toLowerCase() || "png";
 			const fname = `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
@@ -147,7 +192,7 @@
 				branch: BRANCH,
 			});
 			list = ["/gallery/" + fname, ...list];
-			showOk(`✅ 已上传 ${fname}，正在自动部署`);
+			afterCommit(startTs);
 		} catch (e) {
 			showErr("上传失败：" + (e as Error).message);
 		}
@@ -161,6 +206,7 @@
 		busy = true;
 		busyFor = img;
 		msg = "";
+		const startTs = Date.now();
 		try {
 			const target = `${GALLERY_DIR}/${fname}`;
 			// 先取文件 sha，再 DELETE（Contents API 需要 sha）
@@ -171,7 +217,7 @@
 				branch: BRANCH,
 			});
 			list = list.filter((x) => x !== img);
-			showOk(`🗑 已删除 ${fname}，正在自动部署`);
+			afterCommit(startTs);
 		} catch (e) {
 			showErr("删除失败：" + (e as Error).message);
 		}
