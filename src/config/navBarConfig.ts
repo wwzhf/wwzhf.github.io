@@ -45,6 +45,10 @@ const links: NavBarLink[] = [
 				url: "/bangumi/",
 				pageKey: "bangumi",
 			},
+			{
+				name: "图库",
+				url: "/gallery/",
+			},
 		],
 	},
 ];

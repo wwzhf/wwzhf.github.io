@@ -1,0 +1,66 @@
+---
+import { Icon } from "astro-icon/components";
+import GalleryGrid from "@/components/pages/gallery/GalleryGrid.svelte";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { url } from "@/utils/url-utils";
+
+// 扫描 public/gallery/ 下的图片文件（构建时生成列表，上传新图后自动出现在下次构建）
+const galleryDir = path.join(process.cwd(), "public", "gallery");
+const IMG_RE = /\.(webp|avif|png|jpe?g|gif|svg)$/i;
+let images: string[] = [];
+try {
+	images = fs
+		.readdirSync(galleryDir)
+		.filter((f) => IMG_RE.test(f))
+		.sort((a, b) => a.localeCompare(b))
+		.map((f) => "/gallery/" + f);
+} catch (e) {
+	console.error("[Gallery] 无法读取 public/gallery/:", e);
+}
+
+const title = "图库";
+const description = "管理我的壁纸与头像";
+---
+
+<MainGridLayout title={title} description={description}>
+  <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+    <div class="card-base z-10 px-4 sm:px-6 md:px-9 py-4 sm:py-6 relative w-full">
+      <!-- 面包屑 -->
+      <nav
+        aria-label="Breadcrumb"
+        class="flex items-center gap-1 text-sm text-(--content-meta) mb-1"
+      >
+        <a href={url("/")} class="hover:text-(--primary) transition-colors">
+          首页
+        </a>
+        <Icon name="material-symbols:chevron-right-rounded" class="text-[1rem]" />
+        <span class="text-(--primary)">图库</span>
+      </nav>
+
+      <!-- 页面标题 -->
+      <div class="mb-4">
+        <div class="text-xs tracking-[0.2em] text-(--content-meta) mb-1">
+          GALLERY
+        </div>
+        <div class="flex items-center gap-3 mb-2">
+          <div
+            class="h-8 w-8 rounded-lg bg-(--primary) flex items-center justify-center text-white dark:text-black/70"
+          >
+            <Icon name="material-symbols:photo-library-rounded" class="text-[1.5rem]" />
+          </div>
+          <div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
+            图库
+          </div>
+        </div>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          浏览图片，可一键设为网站壁纸或头像（保存后自动部署生效）
+        </p>
+      </div>
+
+      <!-- 图库网格（上传 / 设为壁纸 / 设为头像） -->
+      <GalleryGrid images={images} client:load />
+    </div>
+  </div>
+</MainGridLayout>
