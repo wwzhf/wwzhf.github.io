@@ -154,6 +154,31 @@
 		uploading = false;
 	}
 
+	async function deleteImage(img: string) {
+		if (!requirePat() || busy) return;
+		const fname = img.replace(/^\/gallery\//, "");
+		if (!confirm(`确定从图库删除「${fname}」？\n此操作不可撤销（仓库文件会被删除）。`)) return;
+		busy = true;
+		busyFor = img;
+		msg = "";
+		try {
+			const target = `${GALLERY_DIR}/${fname}`;
+			// 先取文件 sha，再 DELETE（Contents API 需要 sha）
+			const meta = await api(target);
+			await api(target, "DELETE", {
+				message: `chore: 图库删除 ${fname}`,
+				sha: meta.sha,
+				branch: BRANCH,
+			});
+			list = list.filter((x) => x !== img);
+			showOk(`🗑 已删除 ${fname}，正在自动部署`);
+		} catch (e) {
+			showErr("删除失败：" + (e as Error).message);
+		}
+		busy = false;
+		busyFor = null;
+	}
+
 	function base64FromBuffer(buf: ArrayBuffer): string {
 		const bytes = new Uint8Array(buf);
 		let bin = "";
@@ -211,6 +236,13 @@
 						onclick={() => setAvatar(img)}
 					>
 						{busy && busyFor === img ? "处理中..." : "设为头像"}
+					</button>
+					<button
+						class="gl-btn gl-btn-danger"
+						disabled={busy}
+						onclick={() => deleteImage(img)}
+					>
+						{busy && busyFor === img ? "处理中..." : "删除"}
 					</button>
 				</div>
 			</div>
@@ -317,6 +349,13 @@
 		background: var(--primary, #10b981);
 		border-color: var(--primary, #10b981);
 		color: #fff;
+	}
+	.gl-btn-danger {
+		color: #ef4444;
+		border-color: rgba(239, 68, 68, 0.35);
+	}
+	.gl-btn-danger:hover {
+		background: rgba(239, 68, 68, 0.08);
 	}
 	.gl-btn:disabled {
 		opacity: 0.5;
