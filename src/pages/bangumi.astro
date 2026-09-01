@@ -50,6 +50,51 @@ const bangumiConfig = {
 
 const isDynamic = bangumiConfig.mode === "dynamic";
 
+// ── 多源 API：官方 api.bgm.tv 优先（GitHub Actions 云端可达、数据完整），镜像回退 ──
+// api.bangumi.pro 镜像数据可能不完整（实测少 35 条收藏），仅作本地构建回退
+const API_DOMAINS: string[] = ["https://api.bgm.tv"];
+if (bangumiConfig.apiUrl && !API_DOMAINS.includes(bangumiConfig.apiUrl)) {
+	API_DOMAINS.push(bangumiConfig.apiUrl);
+}
+// 官方 access token（可选）：存入 GitHub Actions Secret BANGUMI_TOKEN 注入环境变量，
+// 本地构建无 token 时走匿名/镜像，不影响构建
+const bangumiToken: string = process.env.BANGUMI_TOKEN || "";
+let activeApiBase = ""; // 探测后固定的数据源域名
+
+function bangumiHeaders(): Record<string, string> {
+	const h: Record<string, string> = {
+		"User-Agent": "YuuOuRou Blog",
+		Accept: "application/json",
+	};
+	if (bangumiToken) h["Authorization"] = `Bearer ${bangumiToken}`;
+	return h;
+}
+
+// 探测可用数据源：按序尝试，首个返回 2xx 的固定使用
+async function detectApiSource(username: string): Promise<void> {
+	for (const domain of API_DOMAINS) {
+		try {
+			const resp = await fetch(
+				`${domain}/v0/users/${username}/collections?subject_type=2&limit=1&offset=0`,
+				{
+					headers: bangumiHeaders(),
+					signal: AbortSignal.timeout(10000),
+				},
+			);
+			if (resp.ok) {
+				activeApiBase = domain;
+				console.log(`[Bangumi] ✅ 数据源可用: ${domain}`);
+				return;
+			}
+			console.log(`[Bangumi] ⚠️ ${domain} 返回 HTTP ${resp.status}，尝试下一个源`);
+		} catch (e) {
+			console.log(`[Bangumi] ⚠️ ${domain} 不可达，尝试下一个源`);
+		}
+	}
+	activeApiBase = API_DOMAINS[API_DOMAINS.length - 1];
+	console.log(`[Bangumi] ⚠️ 全部源探测失败，兜底使用 ${activeApiBase}`);
+}
+
 // 分类映射
 const categoryMap = {
 	book: { id: "book", name: i18n(I18nKey.bangumiCategoryBook), subjectType: 1 },
@@ -95,15 +140,12 @@ async function fetchBangumiData(username: string, subjectType: number) {
 			break;
 		}
 
-		const url = `${bangumiConfig.apiUrl}/v0/users/${username}/collections?subject_type=${subjectType}&limit=${limit}&offset=${offset}`;
+		const url = `${activeApiBase}/v0/users/${username}/collections?subject_type=${subjectType}&limit=${limit}&offset=${offset}`;
 
 		console.log(`[Bangumi] Fetching data: ${url} (fetched: ${allData.length})`);
 
 		const response = await fetch(url, {
-			headers: {
-				"User-Agent": "YuuOuRou Blog",
-				Accept: "application/json",
-			},
+			headers: bangumiHeaders(),
 		});
 
 		if (!response.ok) {
@@ -152,6 +194,11 @@ if (!isUserIdConfigured) {
 	console.log("[Bangumi] ⚠️ Bangumi user ID not configured, skipping fetch");
 } else if (!isDynamic) {
 	console.log("[Bangumi] 🌐 Fetching data from API (static mode)");
+}
+
+if (!isDynamic && isUserIdConfigured) {
+	// 先探测可用数据源（官方优先），再开始分页抓取
+	await detectApiSource(bangumiConfig.username!);
 }
 
 if (!isDynamic) {

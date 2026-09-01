@@ -41,6 +41,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       
       - name: Build site
+        env:
+          BANGUMI_TOKEN: ${{ secrets.BANGUMI_TOKEN }}
         run: pnpm run build
 
       - name: Create .nojekyll file

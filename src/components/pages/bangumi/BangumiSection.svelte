@@ -95,6 +95,7 @@ const statusCounts = $derived(() => {
 
 const filters = $derived(() => {
 	const counts = statusCounts();
+	// 全部状态栏目常驻显示（含计数为 0 的，如"在看"），便于用户感知完整栏目
 	return [
 		{
 			value: "all",
@@ -122,7 +123,7 @@ const filters = $derived(() => {
 			label: i18n(I18nKey.bangumiFilterDropped),
 			count: counts.dropped || 0,
 		},
-	].filter((f) => f.value === "all" || f.count > 0);
+	];
 });
 
 let activeFilter = $state("all");
