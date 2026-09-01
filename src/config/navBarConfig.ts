@@ -50,10 +50,6 @@ const links: NavBarLink[] = [
 				pageKey: "bangumi",
 			},
 			{
-				name: "日历",
-				url: "/calendar/",
-			},
-			{
 				name: "足迹",
 				url: "/footprint/",
 			},
