@@ -42,6 +42,14 @@ const description = "追番记录";
         <div class="flex flex-col items-center justify-center py-20 text-neutral-400 dark:text-neutral-500">
           <Icon name="material-symbols:movie-filter-outline" class="text-5xl mb-4 opacity-50" />
           <p class="text-base">内容已清空</p>
+          <a
+            href={url("/bangumi/")}
+            class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-(--primary) text-white dark:text-black/70 font-semibold hover:opacity-90 active:scale-95 transition-all"
+          >
+            <Icon name="material-symbols:auto-stories-rounded" class="text-[1.2rem]" />
+            前往 Bangumi 追番列表
+            <Icon name="material-symbols:arrow-forward-rounded" class="text-[1.1rem]" />
+          </a>
         </div>
       </div>
     </div>

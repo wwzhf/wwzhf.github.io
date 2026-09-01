@@ -218,11 +218,12 @@ export const siteConfig: SiteConfig = {
 	// ── 番组计划bangumi配置 ──────────────────────────────────
 	bangumi: {
 		// Bangumi用户ID
-		userId: "1143164",
+		userId: "905604",
 		// 数据模式：static=构建时获取，dynamic=客户端实时获取
 		// static 模式在构建时获取数据并静态渲染，部署后数据不更新
 		// dynamic 模式在浏览器中实时请求 API，始终显示最新数据
-		mode: "dynamic",
+		// 当前采用 static + GitHub Actions 每月定时重建，实现「每月更新一次」
+		mode: "static",
 		// Bangumi API 地址
 		apiUrl: "https://api.bangumi.pro",
 		// 详情页地址
