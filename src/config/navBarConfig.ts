@@ -41,10 +41,6 @@ const links: NavBarLink[] = [
 		url: "#",
 		children: [
 			{
-				name: "动画",
-				url: "/anime/",
-			},
-			{
 				name: "番剧",
 				url: "/bangumi/",
 				pageKey: "bangumi",

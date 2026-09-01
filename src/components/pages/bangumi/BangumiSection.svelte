@@ -1,6 +1,7 @@
 <script lang="ts">
 import ClientPagination from "@/components/common/ClientPagination.svelte";
 import FilterControls from "@/components/common/FilterControls.svelte";
+import SortControls from "@/components/common/SortControls.svelte";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import type { UserSubjectCollection } from "@/types/bangumi";
@@ -125,7 +126,15 @@ const filters = $derived(() => {
 });
 
 let activeFilter = $state("all");
+// 排序模式：added=最近添加时间，rate=评分，date=开播时间（默认）
+let sortMode = $state("date");
 let currentPage = $state(1);
+
+const sortOptions = [
+	{ value: "added", label: "最近添加" },
+	{ value: "rate", label: "评分" },
+	{ value: "date", label: "开播时间" },
+];
 
 const filteredItems = $derived(
 	activeFilter === "all"
@@ -137,12 +146,31 @@ const filteredItems = $derived(
 			),
 );
 
+// 排序：开播时间(date)/最近添加(added) 按降序（新→旧），评分(rate) 高分在前；
+// 缺失日期/评分的条目排最后
+const sortedItems = $derived(
+	[...filteredItems].sort((a, b) => {
+		if (sortMode === "rate") {
+			const ar = a.subject?.score || 0;
+			const br = b.subject?.score || 0;
+			return br - ar;
+		}
+		const key = sortMode === "added" ? "added" : "date";
+		const av = key === "added" ? a.updated_at : a.subject?.date || "";
+		const bv = key === "added" ? b.updated_at : b.subject?.date || "";
+		if (!av && !bv) return 0;
+		if (!av) return 1; // a 无日期排后
+		if (!bv) return -1;
+		return av < bv ? 1 : av > bv ? -1 : 0;
+	}),
+);
+
 const totalPages = $derived(
 	Math.max(1, Math.ceil(filteredItems.length / itemsPerPage)),
 );
 
 const pagedItems = $derived(
-	filteredItems.slice(
+	sortedItems.slice(
 		(currentPage - 1) * itemsPerPage,
 		currentPage * itemsPerPage,
 	),
@@ -150,6 +178,11 @@ const pagedItems = $derived(
 
 function handleFilterChange(filter: string) {
 	activeFilter = filter;
+	currentPage = 1;
+}
+
+function handleSortChange(sort: string) {
+	sortMode = sort;
 	currentPage = 1;
 }
 
@@ -162,6 +195,11 @@ function goToPage(page: number) {
 
 <div class="media-section" class:hidden={!isActive} data-section={sectionId}>
   {#if safeItems.length > 0}
+    <SortControls
+      options={sortOptions}
+      activeSort={sortMode}
+      onSortChange={handleSortChange}
+    />
     <FilterControls
       filters={filters()}
       activeFilter={activeFilter}
