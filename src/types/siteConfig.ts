@@ -79,17 +79,14 @@ export type SiteConfig = {
 	};
 
 	// 页面开关配置
+	// 注：仅保留当前实际存在的页面；friends/guestbook/gallery/dynamic 等页面已随功能移除
 	pages: {
-		booknav: boolean; // 书签导航页面开关
-		friends: boolean; // 友链页面开关
-		sponsor: boolean; // 打赏页面开关
-		guestbook: boolean; // 留言板页面开关
-		bangumi: boolean;
-		vndb: boolean;
+		booknav: boolean; // 网站导航页面开关（/projects/）
+		sponsor: boolean; // 打赏入口开关（页面已删除，仅控制文章内打赏按钮）
+		bangumi: boolean; // 番组计划页面开关
+		vndb: boolean; // VNDB 页面开关
 		mal: boolean; // MyAnimeList 页面开关
-		gallery: boolean; // 相册页面开关
 		bilibili: boolean; // 哔哩哔哩追番页面开关
-		dynamic: boolean; // 动态页面开关
 	};
 
 	// 分类导航栏开关

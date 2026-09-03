@@ -1,4 +1,3 @@
-import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import { removeFileExtension } from "@utils/url-utils";
 

@@ -710,4 +710,4 @@ const seriesData = await getSeriesPosts(entry);
 </MainGridLayout>
 
 <!-- 当前文章数据：供 EditCard「编辑本页」点击时写入 localStorage，/write/ 直接加载编辑 -->
-<script type="application/json" id="current-article-data" set:html={JSON.stringify(articleEditData)}></script>
+<script is:inline type="application/json" id="current-article-data" set:html={JSON.stringify(articleEditData)}></script>

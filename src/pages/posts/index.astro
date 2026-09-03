@@ -18,6 +18,9 @@ const currentPage = Math.min(
 const start = (currentPage - 1) * perPage;
 const end = Math.min(start + perPage, allPosts.length);
 
+// /posts/ 的分页走查询参数：第 1 页是 /posts/，其余是 /posts/?page=N
+const pageUrlFor = (p: number) => (p === 1 ? "/posts/" : `/posts/?page=${p}`);
+
 const page = {
 	data: allPosts.slice(start, end),
 	total: allPosts.length,
@@ -28,6 +31,8 @@ const page = {
 	end,
 	url: {
 		current: Astro.url.pathname,
+		prev: currentPage > 1 ? pageUrlFor(currentPage - 1) : undefined,
+		next: currentPage < lastPage ? pageUrlFor(currentPage + 1) : undefined,
 		first: "/posts/",
 		last: `/posts/?page=${lastPage}`,
 	},
@@ -60,5 +65,12 @@ const page = {
 
 	<PostPage page={page} />
 
-	{lastPage > 1 && <Pagination page={page} />}
+	{lastPage > 1 && (
+		<Pagination
+			page={page}
+			getPageUrl={(p) => (p === 1 ? "/posts/" : `/posts/?page=${p}`)}
+			hrefTemplate={url("/posts/?page={page}")}
+			hrefFirst={url("/posts/")}
+		/>
+	)}
 </MainGridLayout>
