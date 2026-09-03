@@ -82,9 +82,6 @@ const cmsEntry = removeFileExtension(entry.id);
 const articleEditData = {
 	collection: "posts",
 	entry: cmsEntry,
-	// 真实文件路径（含目录/扩展名，如 guide/index.md、mdx-example.mdx）：
-	// /write/ 保存时必须写回原文件，否则同 slug 会新建 {slug}.md 幽灵文件导致更新不生效
-	filePath: entry.id,
 	title: entry.data.title || "",
 	slug: cmsEntry,
 	cover: entry.data.image || "",
