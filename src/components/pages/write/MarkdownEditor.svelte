@@ -271,6 +271,8 @@
 	}
 
 	function getTargetPath(): string {
+		// 编辑已存在文章：写回原文件路径（含目录/扩展名），避免同 slug 新建幽灵文件导致页面不更新
+		if (originalPath) return originalPath;
 		if (collection === "posts") {
 			const finalSlug = slug || titleToSlug(title);
 			return "src/content/posts/" + (finalSlug || "untitled") + ".md";
@@ -373,23 +375,38 @@
 		}
 	}
 
-	async function loadFromGithub() {
-		if (mode !== "edit" || !entry) return;
+	// 探测 slug 对应的真实文章文件（编辑模式 entry 只有 slug，页面文件可能是 .mdx / <slug>/index.md 等）
+	async function findExistingPostPath(entrySlug: string): Promise<string | null> {
 		const pat = localStorage.getItem(PAT_KEY);
-		if (!pat) {
-			showToast("info", "编辑模式需要先导入 GitHub Token");
-			return;
+		if (!pat) return null;
+		const candidates = [
+			"src/content/posts/" + entrySlug + ".md",
+			"src/content/posts/" + entrySlug + ".mdx",
+			"src/content/posts/" + entrySlug + "/index.md",
+			"src/content/posts/" + entrySlug + "/index.mdx",
+		];
+		for (const p of candidates) {
+			try {
+				const res = await fetch(
+					"https://api.github.com/repos/" + REPO + "/contents/" + p + "?ref=" + BRANCH,
+					{ headers: { Authorization: "token " + pat } },
+				);
+				if (res.ok) return p;
+			} catch {
+				/* 继续尝试下一个候选 */
+			}
 		}
-		const path = getTargetPath();
-		loading = true;
+		return null;
+	}
+
+	// 按给定路径加载文章内容并填充表单
+	async function loadPath(path: string) {
+		const pat = localStorage.getItem(PAT_KEY);
+		if (!pat) return;
+		originalPath = path;
 		try {
 			const res = await fetch(
-				"https://api.github.com/repos/" +
-					REPO +
-					"/contents/" +
-					path +
-					"?ref=" +
-					BRANCH,
+				"https://api.github.com/repos/" + REPO + "/contents/" + path + "?ref=" + BRANCH,
 				{ headers: { Authorization: "token " + pat } },
 			);
 			if (!res.ok) {
@@ -426,6 +443,35 @@
 		} catch (e) {
 			showToast("error", "加载失败：" + (e as Error).message);
 		}
+		loading = false;
+	}
+
+	async function loadFromGithub() {
+		if (mode !== "edit" || !entry) return;
+		const pat = localStorage.getItem(PAT_KEY);
+		if (!pat) {
+			showToast("info", "编辑模式需要先导入 GitHub Token");
+			return;
+		}
+		loading = true;
+		// 优先用注入/已知的原文件路径；否则探测 slug 的真实文件（.md/.mdx/<slug>/index.md）
+		const known = getTargetPath();
+		try {
+			const probe = await fetch(
+				"https://api.github.com/repos/" + REPO + "/contents/" + known + "?ref=" + BRANCH,
+				{ headers: { Authorization: "token " + pat } },
+			);
+			if (probe.ok) {
+				return loadPath(known);
+			}
+		} catch {
+			/* 探测失败走 findExistingPostPath */
+		}
+		const fallback = await findExistingPostPath(entry);
+		if (fallback) {
+			return loadPath(fallback);
+		}
+		showToast("error", "未找到文章文件（slug: " + entry + "）");
 		loading = false;
 	}
 
@@ -493,8 +539,10 @@
 	// 以下是原 renderPreview 实现，先注释掉
 
 	// 初始化（onMount）
-// 从"编辑本页"注入的数据填充表单（localStorage，无需 GitHub Token）
+	// 从"编辑本页"注入的数据填充表单（localStorage，无需 GitHub Token）
 		const EDIT_KEY = "write-edit-article";
+		// 原文件路径（含目录/扩展名）：有值时保存写回原文件，避免 getTargetPath 按 slug 新建 {slug}.md 导致更新不生效
+		let originalPath = $state("");
 		function fillFromEditData(d: any) {
 			title = d.title || "";
 			slug = d.slug || d.entry || "";
@@ -508,6 +556,7 @@
 			content = d.body || "";
 			if (d.collection) collection = d.collection;
 			if (d.entry) entry = d.entry;
+			if (d.filePath) originalPath = d.filePath;
 		}
 
 		function start() {
