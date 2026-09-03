@@ -271,8 +271,11 @@
 	}
 
 	function getTargetPath(): string {
-		// 编辑已存在文章：写回原文件路径（含目录/扩展名），避免同 slug 新建幽灵文件导致页面不更新
-		if (originalPath) return originalPath;
+		// 编辑已存在文章：若记录到的是完整源文件路径（含 src/content/posts/ 前缀与扩展名），写回原文件；
+		// 否则（脏值/无扩展名）忽略，由调用方走 slug 探测
+		if (originalPath && /^src\/content\/posts\/.+\.(md|mdx)$/.test(originalPath)) {
+			return originalPath;
+		}
 		if (collection === "posts") {
 			const finalSlug = slug || titleToSlug(title);
 			return "src/content/posts/" + (finalSlug || "untitled") + ".md";
@@ -312,7 +315,23 @@
 		const pat = localStorage.getItem(PAT_KEY);
 		if (!pat) return;
 
-		const path = getTargetPath();
+		let path = getTargetPath();
+		// posts 集合：目标若不是"已验证的完整源文件路径"，保存前探测 slug 的真实文件
+		//（文章可能存为 .mdx 或 <slug>/index.md，直接按 slug 存 {slug}.md 会生成页面不读的幽灵文件）
+		if (
+			collection === "posts" &&
+			!/^src\/content\/posts\/.+\.(md|mdx)$/.test(path)
+		) {
+			const slugKey = slug || entry || titleToSlug(title);
+			const real = await findExistingPostPath(slugKey);
+			if (real) {
+				path = real;
+				originalPath = real;
+			} else {
+				path =
+					"src/content/posts/" + (slugKey || "untitled") + ".md";
+			}
+		}
 		// config 集合（如 booknavConfig.ts）是源码文件，不加 frontmatter，直接提交原文
 		const body = collection === "config" ? content : buildFrontmatter() + content;
 		const contentBase64 = btoa(unescape(encodeURIComponent(body)));
