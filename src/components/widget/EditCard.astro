@@ -11,8 +11,8 @@ import { url } from "@/utils/url-utils";
 const WRITE_CARD_PATHS = ["/posts/", "/archive/", "/categories/"];
 const path = Astro.url.pathname;
 
-// 文章详情页：/posts/<slug>/ （slug 非空且不是列表页）
-const isArticleDetail = /^\/posts\/[^/]+\/?$/.test(path);
+// 文章详情页：/posts/<slug>/ （slug 支持多级如 guide/xxx；不含 /posts/ 列表页本身）
+const isArticleDetail = /^\/posts\/.+\/?$/.test(path);
 
 // 不在白名单页面且非文章详情页时直接不渲染
 if (!WRITE_CARD_PATHS.includes(path) && !isArticleDetail) {
