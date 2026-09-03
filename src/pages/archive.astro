@@ -7,9 +7,7 @@ import { getSortedPosts } from "@/utils/content-utils";
 import { getPostUrlBySlug, url } from "@/utils/url-utils";
 
 // 归档页（fqzlr 风格）：
-//   面包屑 + ARCHIVE 小标题 + "归档"大标题
-//   + 年份 tab（绿色 active）
-//   + 月度热力图（12 月 × 7 天，颜色深浅代表该月该周几的发布数）
+//   面包屑 + ARCHIVE 小标题 + "归档"大标题 + 年份切换（右侧）
 //   + 按月份分组的文章列表（月份标题 + N 篇文章 + 日期+标题+分类+标签行）
 
 const allPosts = (await getSortedPosts())
@@ -36,36 +34,6 @@ for (const post of allPosts) {
 const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
 const defaultYear = years[0] ?? new Date().getFullYear();
 
-// 构建每个年份的月度热力图：month (0-11) -> dayOfWeek (0-6) -> count
-function buildHeatmap(year: number) {
-	const map = new Map<number, Map<number, number>>();
-	for (const post of allPosts) {
-		if (post.data.published.getFullYear() !== year) continue;
-		const mo = post.data.published.getMonth();
-		const dow = post.data.published.getDay();
-		if (!map.has(mo)) map.set(mo, new Map());
-		const dowMap = map.get(mo)!;
-		dowMap.set(dow, (dowMap.get(dow) || 0) + 1);
-	}
-	// 计算每月份的最大值，用于归一化色阶
-	const monthMax: number[] = Array(12).fill(0);
-	let globalMax = 0;
-	for (let mo = 0; mo < 12; mo++) {
-		const dowMap = map.get(mo);
-		if (!dowMap) continue;
-		const max = Math.max(...Array.from(dowMap.values()));
-		monthMax[mo] = max;
-		if (max > globalMax) globalMax = max;
-	}
-	return { map, monthMax, globalMax };
-}
-
-const heatmaps = new Map<number, ReturnType<typeof buildHeatmap>>();
-for (const y of years) heatmaps.set(y, buildHeatmap(y));
-
-// 周几标签（GitHub 风格）
-const dayLabels = ["", "一", "", "三", "", "五", ""];
-
 function fmtDate(d: Date) {
 	const m = (d.getMonth() + 1).toString().padStart(2, "0");
 	const day = d.getDate().toString().padStart(2, "0");
@@ -79,16 +47,6 @@ function fmtTags(tags: string[] | undefined) {
 	return (
 		shown.map((t) => `#${t}`).join(" ") + (more > 0 ? ` +${more}` : "")
 	);
-}
-
-// 颜色深度（5 个色阶）：0=无, 1-4=浅到深
-function intensityClass(value: number, max: number) {
-	if (value === 0 || max === 0) return "bg-(--btn-regular-bg)";
-	const ratio = value / max;
-	if (ratio < 0.25) return "bg-(--primary)/20";
-	if (ratio < 0.5) return "bg-(--primary)/40";
-	if (ratio < 0.75) return "bg-(--primary)/60";
-	return "bg-(--primary)";
 }
 ---
 
@@ -105,79 +63,20 @@ function intensityClass(value: number, max: number) {
 				<span class="text-(--primary)">归档</span>
 			</nav>
 			<div class="text-xs tracking-[0.2em] text-(--primary) mb-1">ARCHIVE</div>
-			<div class="flex items-center justify-between">
+			<div class="flex items-center justify-between flex-wrap gap-2">
 				<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">归档</h1>
-			</div>
-		</div>
-
-		<div class="card-base px-8 py-6 mb-4">
-			{/* 年份 tab */}
-			<div class="flex flex-wrap items-center justify-end gap-2 mb-4">
-				{years.map((y) => (
-					<button
-						class="archive-year-btn px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-						data-year={y}
-						class:list={[{ "bg-(--primary) text-white dark:text-black/70": y === defaultYear }]}
-					>
-						{y}
-					</button>
-				))}
-			</div>
-
-			{/* 热力图（按当前选中年份切换） */}
-			<div class="archive-heatmaps">
-				{years.map((y) => {
-					const { map, monthMax, globalMax } = heatmaps.get(y)!;
-					return (
-						<div class="archive-heatmap" data-year={y} hidden={y !== defaultYear}>
-							<div class="overflow-x-auto pb-2">
-								<div class="grid grid-cols-[auto_repeat(12,minmax(0,1fr))] gap-1 min-w-[640px]">
-									{/* 月份标签 */}
-									<div></div>
-									{Array.from({ length: 12 }).map((_, mo) => (
-										<div class="text-[0.65rem] text-(--content-meta) text-center">
-											{mo + 1}月
-										</div>
-									))}
-
-									{/* 周几标签 + 7 行 cell */}
-									{Array.from({ length: 7 }).map((_, dow) => (
-										<>
-											<div class="text-[0.65rem] text-(--content-meta) flex items-center justify-end pr-2 h-3">
-												{dayLabels[dow]}
-											</div>
-											{Array.from({ length: 12 }).map((_, mo) => {
-												const value = map.get(mo)?.get(dow) || 0;
-												const maxForColor = monthMax[mo] || globalMax;
-												return (
-													<div
-														class={`h-3 w-full rounded-sm ${intensityClass(value, maxForColor)} archive-cell`}
-														data-month={mo + 1}
-														data-count={value}
-														title={`${y}年${mo + 1}月 周${["日", "一", "二", "三", "四", "五", "六"][dow]} · ${value} 篇`}
-													></div>
-												);
-											})}
-										</>
-									))}
-								</div>
-							</div>
-
-							{/* 色阶图例 */}
-							<div class="flex items-center justify-end gap-1 mt-2 text-[0.65rem] text-(--content-meta)">
-								<span>少</span>
-								<div class="flex gap-0.5">
-									<div class="h-3 w-3 rounded-sm bg-(--btn-regular-bg)"></div>
-									<div class="h-3 w-3 rounded-sm bg-(--primary)/20"></div>
-									<div class="h-3 w-3 rounded-sm bg-(--primary)/40"></div>
-									<div class="h-3 w-3 rounded-sm bg-(--primary)/60"></div>
-									<div class="h-3 w-3 rounded-sm bg-(--primary)"></div>
-								</div>
-								<span>多</span>
-							</div>
-						</div>
-					);
-				})}
+				{/* 年份切换 */}
+				<div class="flex flex-wrap items-center gap-2">
+					{years.map((y) => (
+						<button
+							class="archive-year-btn px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+							data-year={y}
+							class:list={[{ "bg-(--primary) text-white dark:text-black/70": y === defaultYear }]}
+						>
+							{y}
+						</button>
+					))}
+				</div>
 			</div>
 		</div>
 
@@ -256,11 +155,6 @@ function intensityClass(value: number, max: number) {
 				btn.classList.toggle("bg-(--primary)", active);
 				btn.classList.toggle("text-white", active);
 				btn.classList.toggle("dark:text-black/70", active);
-			});
-
-			// 切换热力图
-			this.querySelectorAll<HTMLElement>(".archive-heatmap").forEach((el) => {
-				el.hidden = Number(el.dataset.year) !== year;
 			});
 
 			// 切换文章列表
